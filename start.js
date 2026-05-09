@@ -44,6 +44,13 @@ if (fs.existsSync(source_dir)) {
 	const config_items = fs.readdirSync(source_dir);
 	for (const item_name of config_items) {
 		const source_path = path.join(source_dir, item_name);
+		if (item_name === 'zsh') {
+			const zshrc_source = path.join(source_path, '.zshrc');
+			const zshrc_dest = path.join(os.homedir(), '.zshrc');
+			applyConfig(zshrc_source, zshrc_dest, '.zshrc');
+			continue;
+		}
+
 		const dest_path = path.join(config_dir, item_name);
 		applyConfig(source_path, dest_path, item_name);
 	}
