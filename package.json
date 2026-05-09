@@ -1,0 +1,20 @@
+{
+	"name": "arch-hypr",
+	"version": "1.0.0",
+	"description": "",
+	"homepage": "https://github.com/Iconejey/arch-hypr#readme",
+	"bugs": {
+		"url": "https://github.com/Iconejey/arch-hypr/issues"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/Iconejey/arch-hypr.git"
+	},
+	"license": "ISC",
+	"author": "Nicolas Gouwy",
+	"type": "commonjs",
+	"main": "start.js",
+	"scripts": {
+		"start": "node start.js"
+	}
+}
