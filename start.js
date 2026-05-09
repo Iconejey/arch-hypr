@@ -41,13 +41,11 @@ function applyConfig(source, dest, name) {
 console.log('🚀 Starting configuration application...\n');
 
 if (fs.existsSync(source_dir)) {
-	const config_folders = fs.readdirSync(source_dir);
-	for (const folder_name of config_folders) {
-		const source_path = path.join(source_dir, folder_name);
-		if (fs.lstatSync(source_path).isDirectory()) {
-			const dest_path = path.join(config_dir, folder_name);
-			applyConfig(source_path, dest_path, folder_name);
-		}
+	const config_items = fs.readdirSync(source_dir);
+	for (const item_name of config_items) {
+		const source_path = path.join(source_dir, item_name);
+		const dest_path = path.join(config_dir, item_name);
+		applyConfig(source_path, dest_path, item_name);
 	}
 } else {
 	console.error(`❌ Source directory ${source_dir} does not exist.`);
