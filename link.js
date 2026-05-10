@@ -51,6 +51,20 @@ if (fs.existsSync(source_dir)) {
 			continue;
 		}
 
+		if (item_name === 'vscode') {
+			const vscode_source = path.join(source_path, 'settings.json');
+			const vscode_dest = path.join(config_dir, 'Code', 'User', 'settings.json');
+			
+			// Ensure the target directory exists
+			const dest_dir = path.dirname(vscode_dest);
+			if (!fs.existsSync(dest_dir)) {
+				fs.mkdirSync(dest_dir, { recursive: true });
+			}
+			
+			applyConfig(vscode_source, vscode_dest, 'vscode settings.json');
+			continue;
+		}
+
 		const dest_path = path.join(config_dir, item_name);
 		applyConfig(source_path, dest_path, item_name);
 	}

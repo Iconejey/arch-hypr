@@ -13,8 +13,8 @@
 	"license": "ISC",
 	"author": "Nicolas Gouwy",
 	"type": "commonjs",
-	"main": "start.js",
+	"main": "link.js",
 	"scripts": {
-		"start": "node start.js"
+		"link": "node link.js"
 	}
 }
