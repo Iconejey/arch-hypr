@@ -10,6 +10,7 @@
 	"prettier.trailingComma": "none",
 	"prettier.useTabs": true,
 	"terminal.integrated.defaultProfile.windows": "Command Prompt",
+	"terminal.external.linuxExec": "kitty",
 
 	"window.restoreWindows": "none",
 

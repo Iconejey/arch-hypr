@@ -52,16 +52,19 @@ if (fs.existsSync(source_dir)) {
 		}
 
 		if (item_name === 'vscode') {
-			const vscode_source = path.join(source_path, 'settings.json');
-			const vscode_dest = path.join(config_dir, 'Code', 'User', 'settings.json');
+			const vscode_source_settings = path.join(source_path, 'settings.json');
+			const vscode_dest_settings = path.join(config_dir, 'Code', 'User', 'settings.json');
+			const vscode_source_keybindings = path.join(source_path, 'keybindings.json');
+			const vscode_dest_keybindings = path.join(config_dir, 'Code', 'User', 'keybindings.json');
 			
 			// Ensure the target directory exists
-			const dest_dir = path.dirname(vscode_dest);
+			const dest_dir = path.dirname(vscode_dest_settings);
 			if (!fs.existsSync(dest_dir)) {
 				fs.mkdirSync(dest_dir, { recursive: true });
 			}
 			
-			applyConfig(vscode_source, vscode_dest, 'vscode settings.json');
+			applyConfig(vscode_source_settings, vscode_dest_settings, 'vscode settings.json');
+			applyConfig(vscode_source_keybindings, vscode_dest_keybindings, 'vscode keybindings.json');
 			continue;
 		}
 
