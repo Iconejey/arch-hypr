@@ -24,6 +24,8 @@ if [[ "$1" == "--final" ]]; then
     echo -e "${CYAN}Starting Phase 2 Installation...${NC}"
 else
     echo -e "${CYAN}Starting Phase 1 (Core) Installation...${NC}"
+    echo -e "${YELLOW}Running full system upgrade...${NC}"
+    sudo pacman -Syu --noconfirm
 fi
 echo -e "${CYAN}========================================${NC}\n"
 
