@@ -1,0 +1,22 @@
+Package,Install Command
+kitty,yay -S kitty
+yay,sudo pacman -S --needed git base-devel && rm -rf /tmp/yay && git clone https://aur.archlinux.org/yay.git /tmp/yay && cd /tmp/yay && makepkg -si
+zsh,yay -S zsh
+oh-my-zsh,sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+zsh-autosuggestions,yay -S zsh-autosuggestions
+zsh-syntax-highlighting,yay -S zsh-syntax-highlighting
+hyprland,yay -S hyprland
+hyprpicker,yay -S hyprpicker
+hyprshutdown,yay -S hyprshutdown
+---TAG_PHASE_2---,
+visual-studio-code-bin,yay -S visual-studio-code-bin
+nodejs,yay -S nodejs
+npm,yay -S npm
+iwd,yay -S iwd
+acpi,yay -S acpi
+awww,yay -S awww
+awww-daemon,yay -S awww-daemon
+anyrun,yay -S anyrun-git
+nautilus,yay -S nautilus
+neofetch,yay -S neofetch
+google-chrome,yay -S google-chrome
