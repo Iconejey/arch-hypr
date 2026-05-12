@@ -91,7 +91,7 @@ if [[ "$1" != "--final" ]]; then
 
         # Formatting command to bypass confirmation
         if [[ "$cmd" == "yay "* ]]; then
-            cmd="$cmd --noconfirm --needed --noprovides --answerdiff None --answerclean None --mflags \"--noconfirm\""
+            cmd="$cmd --noconfirm --needed --answerdiff None --answerclean None --mflags \"--noconfirm\""
         fi
         if [[ "$cmd" == *"makepkg -si"* ]]; then
             cmd="${cmd/makepkg -si/makepkg -si --noconfirm}"
@@ -125,7 +125,7 @@ else
     
         # Formatting command to bypass confirmation
         if [[ "$cmd" == "yay "* ]]; then
-            cmd="$cmd --noconfirm --needed --noprovides --answerdiff None --answerclean None --mflags \"--noconfirm\""
+            cmd="$cmd --noconfirm --needed --answerdiff None --answerclean None --mflags \"--noconfirm\""
         fi
         if [[ "$cmd" == *"makepkg -si"* ]]; then
             cmd="${cmd/makepkg -si/makepkg -si --noconfirm}"
