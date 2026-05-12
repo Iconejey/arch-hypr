@@ -44,23 +44,6 @@ if (fs.existsSync(source_dir)) {
 	const config_items = fs.readdirSync(source_dir);
 	for (const item_name of config_items) {
 		const source_path = path.join(source_dir, item_name);
-		if (item_name === 'iwd') {
-			const iwd_source = path.join(source_path, 'main.conf');
-			const iwd_dest = '/etc/iwd/main.conf';
-			try {
-				console.log(`* Linking iwd config to ${iwd_dest} (requires sudo)`);
-				execSync(`sudo mkdir -p /etc/iwd`);
-				execSync(`sudo rm -f "${iwd_dest}" && sudo cp "${iwd_source}" "${iwd_dest}"`);
-				execSync(`sudo systemctl enable --now systemd-resolved 2>/dev/null || true`);
-                                execSync(`sudo systemctl enable --now systemd-networkd 2>/dev/null || true`);
-                                execSync(`sudo ln -sfn /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf`);
-				execSync(`sudo systemctl restart iwd 2>/dev/null || true`);
-				console.log(`✅ Successfully applied iwd config.`);
-			} catch (err) {
-				console.error(`❌ Failed to apply iwd config:`, err.message);
-			}
-			continue;
-		}
 
 		if (item_name === 'zsh') {
 			const zshrc_source = path.join(source_path, '.zshrc');
