@@ -20,171 +20,99 @@ sudo -v
 while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
 
 echo -e "\n${CYAN}========================================${NC}"
-if [[ "$1" == "--final" ]]; then
-    echo -e "${CYAN}Starting Phase 2 Installation...${NC}"
-else
-    echo -e "${CYAN}Starting Phase 1 (Core) Installation...${NC}"
-fi
+echo -e "${CYAN}Starting Installation...${NC}"
 echo -e "${CYAN}========================================${NC}\n"
 
-SEEN_TAG=false
+declare -a installed_pkgs
+declare -a uninstalled_pkgs
+declare -A uninstalled_cmds
 
-if [[ "$1" != "--final" ]]; then
-    declare -a installed_pkgs
-    declare -a uninstalled_pkgs_p1
-    declare -a uninstalled_pkgs_p2
-    declare -A uninstalled_cmds
-
-    current_phase=1
-
-    # First pass: collect apps and check installation status
-    while IFS=, read -r pkg cmd; do
-        [[ -z "$pkg" ]] && continue
-        if [[ "$pkg" == "---TAG_PHASE_2---" ]]; then
-            current_phase=2
-            continue
-        fi
-
-        # Check if already installed
-        is_installed=false
-        if pacman -Qq "$pkg" >/dev/null 2>&1; then
-            is_installed=true
-        elif command -v "$pkg" >/dev/null 2>&1; then
-            is_installed=true
-        elif [[ "$pkg" == "oh-my-zsh" && -d "$HOME/.oh-my-zsh" ]]; then
-            is_installed=true
-        fi
-
-        if [ "$is_installed" = true ]; then
-            installed_pkgs+=("$pkg")
-        else
-            if [ "$current_phase" -eq 1 ]; then
-                uninstalled_pkgs_p1+=("$pkg")
-            else
-                uninstalled_pkgs_p2+=("$pkg")
-            fi
-            uninstalled_cmds["$pkg"]="$cmd"
-        fi
-    done < <(tail -n +2 software.csv)
-
-    echo -e "\n${CYAN}--- Installation Summary ---${NC}"
-    echo -e "${GREEN}Already Installed:${NC}"
-    for p in "${installed_pkgs[@]}"; do echo "  - $p"; done
-    echo -e "\n${YELLOW}To be Installed (Phase 1):${NC}"
-    for p in "${uninstalled_pkgs_p1[@]}"; do echo "  - $p"; done
-    echo -e "\n${YELLOW}To be Installed (Phase 2):${NC}"
-    for p in "${uninstalled_pkgs_p2[@]}"; do echo "  - $p"; done
-    echo -e "${CYAN}----------------------------${NC}\n"
-
-    read -p "Do you want to continue with the installation? (y/N) " confirm
-    if [[ ! $confirm =~ ^[Yy]$ ]]; then
-        echo -e "${RED}Installation aborted by user.${NC}"
-        exit 1
+# First pass: collect apps and check installation status
+while IFS=, read -r pkg cmd; do
+    [[ -z "$pkg" ]] && continue
+    if [[ "$pkg" == "---TAG_PHASE_2---" ]]; then
+        continue
     fi
 
-    echo -e "\n${YELLOW}Running full system upgrade...${NC}"
-    sudo pacman -Syu --noconfirm
+    # Check if already installed
+    is_installed=false
+    if pacman -Qq "$pkg" >/dev/null 2>&1; then
+        is_installed=true
+    elif command -v "$pkg" >/dev/null 2>&1; then
+        is_installed=true
+    elif [[ "$pkg" == "oh-my-zsh" && -d "$HOME/.oh-my-zsh" ]]; then
+        is_installed=true
+    fi
 
-    # Second pass for Phase 1: actual installation
-    for pkg in "${uninstalled_pkgs_p1[@]}"; do
-        cmd="${uninstalled_cmds[$pkg]}"
+    if [ "$is_installed" = true ]; then
+        installed_pkgs+=("$pkg")
+    else
+        uninstalled_pkgs+=("$pkg")
+        uninstalled_cmds["$pkg"]="$cmd"
+    fi
+done < <(tail -n +2 software.csv)
 
-        # Formatting command to bypass confirmation
-        if [[ "$cmd" == "yay "* ]]; then
-            cmd="$cmd --noconfirm --needed --answerdiff None --answerclean None --mflags \"--noconfirm\""
-        fi
-        if [[ "$cmd" == *"makepkg -si"* ]]; then
-            cmd="${cmd/makepkg -si/makepkg -si --noconfirm}"
-        fi
-        if [[ "$cmd" == *"pacman -S "* ]]; then
-            cmd="${cmd/pacman -S /pacman -S --noconfirm }"
-        fi
-        if [[ "$pkg" == "oh-my-zsh" ]]; then
-            cmd='sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended'
-        fi
+echo -e "\n${CYAN}--- Installation Summary ---${NC}"
+echo -e "${GREEN}Already Installed:${NC}"
+for p in "${installed_pkgs[@]}"; do echo "  - $p"; done
+echo -e "\n${YELLOW}To be Installed:${NC}"
+for p in "${uninstalled_pkgs[@]}"; do echo "  - $p"; done
+echo -e "${CYAN}----------------------------${NC}\n"
 
-        echo -e "${YELLOW}[ !! ]${NC} Installing $pkg..."
-        eval "$cmd"
-    done
-else
-    # Process software.csv for Phase 2
-    tail -n +2 software.csv | while IFS=, read -r pkg cmd; do
-        # Skip empty lines
-        [[ -z "$pkg" ]] && continue
-    
-        # Check for the phase separator tag
-        if [[ "$pkg" == "---TAG_PHASE_2---" ]]; then
-            SEEN_TAG=true
-            continue
-        fi
-    
-        # Phase 2 logic: continue skipping lines until we hit the tag
-        if [[ "$SEEN_TAG" == false ]]; then
-            continue
-        fi
-    
-        # Formatting command to bypass confirmation
-        if [[ "$cmd" == "yay "* ]]; then
-            cmd="$cmd --noconfirm --needed --answerdiff None --answerclean None --mflags \"--noconfirm\""
-        fi
-        if [[ "$cmd" == *"makepkg -si"* ]]; then
-            cmd="${cmd/makepkg -si/makepkg -si --noconfirm}"
-        fi
-        if [[ "$cmd" == *"pacman -S "* ]]; then
-            cmd="${cmd/pacman -S /pacman -S --noconfirm }"
-        fi
-        if [[ "$pkg" == "oh-my-zsh" ]]; then
-            cmd='sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended'
-        fi
-    
-        # Check if already installed
-        is_installed=false
-        if pacman -Qq "$pkg" >/dev/null 2>&1; then
-            is_installed=true
-        elif command -v "$pkg" >/dev/null 2>&1; then
-            is_installed=true
-        elif [[ "$pkg" == "oh-my-zsh" && -d "$HOME/.oh-my-zsh" ]]; then
-            is_installed=true
-        fi
-    
-        if [ "$is_installed" = true ]; then
-            echo -e "${GREEN}[ OK ]${NC} $pkg is already installed."
-        else
-            echo -e "${YELLOW}[ !! ]${NC} Installing $pkg..."
-            eval "$cmd"
-        fi
-    done
+read -p "Do you want to continue with the installation? (y/N) " confirm
+if [[ ! $confirm =~ ^[Yy]$ ]]; then
+    echo -e "${RED}Installation aborted by user.${NC}"
+    exit 1
 fi
 
-if [[ "$1" != "--final" ]]; then
-    echo -e "\n${CYAN}========================================${NC}"
-    echo -e "${CYAN}Applying manual configurations...${NC}"
-    echo -e "${CYAN}========================================${NC}"
-    # Manually link configurations so the new terminal looks right immediately
-    mkdir -p ~/.config/hypr ~/.config/kitty
-    ln -sfn "$(pwd)/configs/hypr/hyprland.conf" ~/.config/hypr/hyprland.conf
-    ln -sfn "$(pwd)/configs/kitty/kitty.conf" ~/.config/kitty/kitty.conf
-    ln -sfn "$(pwd)/configs/zsh/.zshrc" ~/.zshrc
+echo -e "\n${YELLOW}Running full system upgrade...${NC}"
+sudo pacman -Syu --noconfirm
 
-    echo -e "${YELLOW}Changing default shell to ZSH...${NC}"
-    sudo chsh -s $(which zsh) "$USER"
+# Second pass for installation: actual installation
+for pkg in "${uninstalled_pkgs[@]}"; do
+    cmd="${uninstalled_cmds[$pkg]}"
 
-    echo -e "\n${CYAN}========================================${NC}"
-    echo -e "${CYAN}Spawning final terminal with ZSH theme...${NC}"
-    echo -e "${CYAN}========================================${NC}"
-    # Open Kitty -> Launch Phase 2 of this script script -> drop into your native ZSH shell
-    nohup kitty bash -c "$(pwd)/init.sh --final; exec zsh" >/dev/null 2>&1 &
-    exit 0
-else
-    echo -e "\n${CYAN}========================================${NC}"
-    echo -e "${CYAN}Running Configuration Linker...${NC}"
-    echo -e "${CYAN}========================================${NC}"
-    # Now node is installed along with the rest, we run link.js
-    node link.js
+    # Formatting command to bypass confirmation
+    if [[ "$cmd" == "yay "* ]]; then
+        cmd="$cmd --noconfirm --needed --answerdiff None --answerclean None --mflags \"--noconfirm\""
+    fi
+    if [[ "$cmd" == *"makepkg -si"* ]]; then
+        cmd="${cmd/makepkg -si/makepkg -si --noconfirm}"
+    fi
+    if [[ "$cmd" == *"pacman -S "* ]]; then
+        cmd="${cmd/pacman -S /pacman -S --noconfirm }"
+    fi
+    if [[ "$pkg" == "oh-my-zsh" ]]; then
+        cmd='sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended'
+    fi
 
-    echo -e "\n${CYAN}========================================${NC}"
-    echo -e "${GREEN}Installation Complete!${NC}"
-    echo -e "${CYAN}========================================${NC}\n"
-    # Display system info
-    neofetch
-fi
+    echo -e "${YELLOW}[ !! ]${NC} Installing $pkg..."
+    eval "$cmd"
+done
+
+echo -e "\n${CYAN}========================================${NC}"
+echo -e "${CYAN}Applying manual configurations...${NC}"
+echo -e "${CYAN}========================================${NC}"
+# Manually link configurations so the new terminal looks right immediately
+mkdir -p ~/.config/hypr ~/.config/kitty
+ln -sfn "$(pwd)/configs/hypr/hyprland.conf" ~/.config/hypr/hyprland.conf
+ln -sfn "$(pwd)/configs/kitty/kitty.conf" ~/.config/kitty/kitty.conf
+ln -sfn "$(pwd)/configs/zsh/.zshrc" ~/.zshrc
+
+echo -e "${YELLOW}Changing default shell to ZSH...${NC}"
+sudo chsh -s $(which zsh) "$USER"
+
+echo -e "\n${CYAN}========================================${NC}"
+echo -e "${CYAN}Running Configuration Linker...${NC}"
+echo -e "${CYAN}========================================${NC}"
+# Now node is installed along with the rest, we run link.js
+node link.js
+
+echo -e "\n${CYAN}========================================${NC}"
+echo -e "${GREEN}Installation Complete!${NC}"
+echo -e "${CYAN}========================================${NC}\n"
+# Display system info
+neofetch
+
+echo -e "\n${YELLOW}Please restart your terminal or log out and log back in to see all changes.${NC}"
+exit 0

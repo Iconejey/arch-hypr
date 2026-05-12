@@ -10,7 +10,6 @@ hyprpicker,yay -S hyprpicker
 hyprshot,yay -S hyprshot
 hyprshutdown,yay -S hyprshutdown
 ttf-ms-fonts,yay -S ttf-ms-fonts
----TAG_PHASE_2---,
 brightnessctl,yay -S brightnessctl
 iwd,yay -S iwd
 google-chrome,yay -S google-chrome
