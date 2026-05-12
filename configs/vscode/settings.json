@@ -403,7 +403,6 @@
 	"debug.console.fontSize": 17,
 	"explorer.confirmDelete": false,
 	"explorer.confirmDragAndDrop": false,
-	"window.commandCenter": false,
 	"editor.linkedEditing": true,
 	"remote.SSH.remotePlatform": {
 		"notask.app": "linux",
@@ -496,9 +495,15 @@
 	},
 	"gitlens.ai.model": "vscode",
 	"gitlens.ai.vscode.model": "copilot:gpt-4.1",
-	"workbench.layoutControl.enabled": false,
 	"workbench.browser.showInTitleBar": false,
-	"window.menuBarVisibility": "compact",
+
+	"window.titleBarStyle": "native",
+
+	"window.commandCenter": false,
+	"workbench.layoutControl.enabled": false,
+
+	"window.menuBarVisibility": "toggle",
+
 	"breadcrumbs.enabled": false,
 	"workbench.activityBar.location": "hidden",
 	"workbench.colorTheme": "Material Theme Darker",
