@@ -7,6 +7,7 @@ zsh-autosuggestions,yay -S zsh-autosuggestions
 zsh-syntax-highlighting,yay -S zsh-syntax-highlighting
 hyprland,yay -S hyprland
 hyprpicker,yay -S hyprpicker
+hyprshot,yay -S hyprshot
 hyprshutdown,yay -S hyprshutdown
 ttf-ms-fonts,yay -S ttf-ms-fonts
 ---TAG_PHASE_2---,
