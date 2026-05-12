@@ -25,3 +25,4 @@ bluez,yay -S bluez
 bluez-utils,yay -S bluez-utils
 blueman,yay -S blueman
 neofetch,yay -S neofetch
+zbar,yay -S zbar

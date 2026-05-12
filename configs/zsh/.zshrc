@@ -70,9 +70,13 @@ ZSH_THEME="robbyrussell"
 # Custom plugins may be added to $ZSH_CUSTOM/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
-plugins=(zsh-autosuggestions zsh-syntax-highlighting)
+plugins=()
 
 source $ZSH/oh-my-zsh.sh
+
+# Load Arch Linux packaged plugins
+source /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh 2>/dev/null
+source /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh 2>/dev/null
 
 # User configuration
 
@@ -106,3 +110,75 @@ source $ZSH/oh-my-zsh.sh
 # Disable git info in the prompt
 git_prompt_info() { true; }
 
+
+# Scan a QR code to connect to WiFi using iwd
+wifi-qr() {
+    if ! command -v zbarcam &> /dev/null; then
+        echo "zbarcam not found. Please install zbar (yay -S zbar)."
+        return 1
+    fi
+
+    echo "Opening camera to scan WiFi QR code... (Press Ctrl+C to cancel)"
+    
+    # Read the QR code (-1 ensures it closes after first valid read)
+    local qr
+    qr=$(zbarcam -1 --raw 2>/dev/null)
+    
+    if [[ -z "$qr" ]]; then
+        echo "No QR code detected or scan cancelled."
+        return 1
+    fi
+    
+    if [[ ! "$qr" == WIFI:* ]]; then
+        echo "Scanned QR code is not a valid WiFi configuration: $qr"
+        return 1
+    fi
+    
+    local ssid=""
+    local pass=""
+    
+    # Extract the payload
+    local payload="${qr#WIFI:}"
+    
+    # Splitting by semicolon
+    local IFS=';'
+    local parts
+    # Using word splitting intentionally on the unquoted $payload
+    read -r -A parts <<< "$payload"
+    for part in "${parts[@]}"; do
+        if [[ "$part" == S:* ]]; then
+            ssid="${part#S:}"
+        elif [[ "$part" == P:* ]]; then
+            pass="${part#P:}"
+        fi
+    done
+    
+    if [[ -z "$ssid" ]]; then
+        echo "Could not find SSID in QR code."
+        return 1
+    fi
+    
+    # Get the wireless station device
+    local device
+    # iwctl station list outputs a table. The raw output has ANSI codes.
+    device=$(iwctl station list | sed 's/\x1b\[[0-9;]*m//g' | awk 'NR>4 && NF>0 {print $1; exit}')
+    
+    if [[ -z "$device" ]]; then
+        echo "No WiFi station device found via iwctl."
+        return 1
+    fi
+    
+    echo "Connecting to network: $ssid using device $device"
+    
+    if [[ -n "$pass" ]]; then
+        iwctl --passphrase "$pass" station "$device" connect "$ssid"
+    else
+        iwctl station "$device" connect "$ssid"
+    fi
+    
+    if [[ $? -eq 0 ]]; then
+        echo "Successfully initiated connection to $ssid."
+    else
+        echo "Failed to connect to $ssid."
+    fi
+}
