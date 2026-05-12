@@ -31,14 +31,18 @@ SEEN_TAG=false
 
 if [[ "$1" != "--final" ]]; then
     declare -a installed_pkgs
-    declare -a uninstalled_pkgs
+    declare -a uninstalled_pkgs_p1
+    declare -a uninstalled_pkgs_p2
     declare -A uninstalled_cmds
+
+    current_phase=1
 
     # First pass: collect apps and check installation status
     while IFS=, read -r pkg cmd; do
         [[ -z "$pkg" ]] && continue
         if [[ "$pkg" == "---TAG_PHASE_2---" ]]; then
-            break
+            current_phase=2
+            continue
         fi
 
         # Check if already installed
@@ -54,17 +58,23 @@ if [[ "$1" != "--final" ]]; then
         if [ "$is_installed" = true ]; then
             installed_pkgs+=("$pkg")
         else
-            uninstalled_pkgs+=("$pkg")
+            if [ "$current_phase" -eq 1 ]; then
+                uninstalled_pkgs_p1+=("$pkg")
+            else
+                uninstalled_pkgs_p2+=("$pkg")
+            fi
             uninstalled_cmds["$pkg"]="$cmd"
         fi
     done < <(tail -n +2 software.csv)
 
-    echo -e "\n${CYAN}--- Phase 1 Summary ---${NC}"
+    echo -e "\n${CYAN}--- Installation Summary ---${NC}"
     echo -e "${GREEN}Already Installed:${NC}"
     for p in "${installed_pkgs[@]}"; do echo "  - $p"; done
-    echo -e "\n${YELLOW}To be Installed:${NC}"
-    for p in "${uninstalled_pkgs[@]}"; do echo "  - $p"; done
-    echo -e "${CYAN}-----------------------${NC}\n"
+    echo -e "\n${YELLOW}To be Installed (Phase 1):${NC}"
+    for p in "${uninstalled_pkgs_p1[@]}"; do echo "  - $p"; done
+    echo -e "\n${YELLOW}To be Installed (Phase 2):${NC}"
+    for p in "${uninstalled_pkgs_p2[@]}"; do echo "  - $p"; done
+    echo -e "${CYAN}----------------------------${NC}\n"
 
     read -p "Do you want to continue with the installation? (y/N) " confirm
     if [[ ! $confirm =~ ^[Yy]$ ]]; then
@@ -76,7 +86,7 @@ if [[ "$1" != "--final" ]]; then
     sudo pacman -Syu --noconfirm
 
     # Second pass for Phase 1: actual installation
-    for pkg in "${uninstalled_pkgs[@]}"; do
+    for pkg in "${uninstalled_pkgs_p1[@]}"; do
         cmd="${uninstalled_cmds[$pkg]}"
 
         # Formatting command to bypass confirmation
