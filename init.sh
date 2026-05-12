@@ -24,65 +24,127 @@ if [[ "$1" == "--final" ]]; then
     echo -e "${CYAN}Starting Phase 2 Installation...${NC}"
 else
     echo -e "${CYAN}Starting Phase 1 (Core) Installation...${NC}"
-    echo -e "${YELLOW}Running full system upgrade...${NC}"
-    sudo pacman -Syu --noconfirm
 fi
 echo -e "${CYAN}========================================${NC}\n"
 
 SEEN_TAG=false
 
-# Process software.csv
-tail -n +2 software.csv | while IFS=, read -r pkg cmd; do
-    # Skip empty lines
-    [[ -z "$pkg" ]] && continue
+if [[ "$1" != "--final" ]]; then
+    declare -a installed_pkgs
+    declare -a uninstalled_pkgs
+    declare -A uninstalled_cmds
 
-    # Check for the phase separator tag
-    if [[ "$pkg" == "---TAG_PHASE_2---" ]]; then
-        SEEN_TAG=true
-        continue
-    fi
+    # First pass: collect apps and check installation status
+    while IFS=, read -r pkg cmd; do
+        [[ -z "$pkg" ]] && continue
+        if [[ "$pkg" == "---TAG_PHASE_2---" ]]; then
+            break
+        fi
 
-    # Phase 1 logic: break if we hit the tag
-    if [[ "$1" != "--final" && "$SEEN_TAG" == true ]]; then
-        break
-    fi
+        # Check if already installed
+        is_installed=false
+        if pacman -Qq "$pkg" >/dev/null 2>&1; then
+            is_installed=true
+        elif command -v "$pkg" >/dev/null 2>&1; then
+            is_installed=true
+        elif [[ "$pkg" == "oh-my-zsh" && -d "$HOME/.oh-my-zsh" ]]; then
+            is_installed=true
+        fi
 
-    # Phase 2 logic: continue skipping lines until we hit the tag
-    if [[ "$1" == "--final" && "$SEEN_TAG" == false ]]; then
-        continue
-    fi
+        if [ "$is_installed" = true ]; then
+            installed_pkgs+=("$pkg")
+        else
+            uninstalled_pkgs+=("$pkg")
+            uninstalled_cmds["$pkg"]="$cmd"
+        fi
+    done < <(tail -n +2 software.csv)
 
-    # Formatting command to bypass confirmation
-    if [[ "$cmd" == "yay "* ]]; then
-        cmd="$cmd --noconfirm --needed --noprovides --answerdiff None --answerclean None --mflags \"--noconfirm\""
-    fi
-    if [[ "$cmd" == *"makepkg -si"* ]]; then
-        cmd="${cmd/makepkg -si/makepkg -si --noconfirm}"
-    fi
-    if [[ "$cmd" == *"pacman -S "* ]]; then
-        cmd="${cmd/pacman -S /pacman -S --noconfirm }"
-    fi
-    if [[ "$pkg" == "oh-my-zsh" ]]; then
-        cmd='sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended'
-    fi
+    echo -e "\n${CYAN}--- Phase 1 Summary ---${NC}"
+    echo -e "${GREEN}Already Installed:${NC}"
+    for p in "${installed_pkgs[@]}"; do echo "  - $p"; done
+    echo -e "\n${YELLOW}To be Installed:${NC}"
+    for p in "${uninstalled_pkgs[@]}"; do echo "  - $p"; done
+    echo -e "${CYAN}-----------------------${NC}\n"
 
-    # Check if already installed
-    is_installed=false
-    if pacman -Qq "$pkg" >/dev/null 2>&1; then
-        is_installed=true
-    elif command -v "$pkg" >/dev/null 2>&1; then
-        is_installed=true
-    elif [[ "$pkg" == "oh-my-zsh" && -d "$HOME/.oh-my-zsh" ]]; then
-        is_installed=true
+    read -p "Do you want to continue with the installation? (y/N) " confirm
+    if [[ ! $confirm =~ ^[Yy]$ ]]; then
+        echo -e "${RED}Installation aborted by user.${NC}"
+        exit 1
     fi
 
-    if [ "$is_installed" = true ]; then
-        echo -e "${GREEN}[ OK ]${NC} $pkg is already installed."
-    else
+    echo -e "\n${YELLOW}Running full system upgrade...${NC}"
+    sudo pacman -Syu --noconfirm
+
+    # Second pass for Phase 1: actual installation
+    for pkg in "${uninstalled_pkgs[@]}"; do
+        cmd="${uninstalled_cmds[$pkg]}"
+
+        # Formatting command to bypass confirmation
+        if [[ "$cmd" == "yay "* ]]; then
+            cmd="$cmd --noconfirm --needed --noprovides --answerdiff None --answerclean None --mflags \"--noconfirm\""
+        fi
+        if [[ "$cmd" == *"makepkg -si"* ]]; then
+            cmd="${cmd/makepkg -si/makepkg -si --noconfirm}"
+        fi
+        if [[ "$cmd" == *"pacman -S "* ]]; then
+            cmd="${cmd/pacman -S /pacman -S --noconfirm }"
+        fi
+        if [[ "$pkg" == "oh-my-zsh" ]]; then
+            cmd='sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended'
+        fi
+
         echo -e "${YELLOW}[ !! ]${NC} Installing $pkg..."
         eval "$cmd"
-    fi
-done
+    done
+else
+    # Process software.csv for Phase 2
+    tail -n +2 software.csv | while IFS=, read -r pkg cmd; do
+        # Skip empty lines
+        [[ -z "$pkg" ]] && continue
+    
+        # Check for the phase separator tag
+        if [[ "$pkg" == "---TAG_PHASE_2---" ]]; then
+            SEEN_TAG=true
+            continue
+        fi
+    
+        # Phase 2 logic: continue skipping lines until we hit the tag
+        if [[ "$SEEN_TAG" == false ]]; then
+            continue
+        fi
+    
+        # Formatting command to bypass confirmation
+        if [[ "$cmd" == "yay "* ]]; then
+            cmd="$cmd --noconfirm --needed --noprovides --answerdiff None --answerclean None --mflags \"--noconfirm\""
+        fi
+        if [[ "$cmd" == *"makepkg -si"* ]]; then
+            cmd="${cmd/makepkg -si/makepkg -si --noconfirm}"
+        fi
+        if [[ "$cmd" == *"pacman -S "* ]]; then
+            cmd="${cmd/pacman -S /pacman -S --noconfirm }"
+        fi
+        if [[ "$pkg" == "oh-my-zsh" ]]; then
+            cmd='sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended'
+        fi
+    
+        # Check if already installed
+        is_installed=false
+        if pacman -Qq "$pkg" >/dev/null 2>&1; then
+            is_installed=true
+        elif command -v "$pkg" >/dev/null 2>&1; then
+            is_installed=true
+        elif [[ "$pkg" == "oh-my-zsh" && -d "$HOME/.oh-my-zsh" ]]; then
+            is_installed=true
+        fi
+    
+        if [ "$is_installed" = true ]; then
+            echo -e "${GREEN}[ OK ]${NC} $pkg is already installed."
+        else
+            echo -e "${YELLOW}[ !! ]${NC} Installing $pkg..."
+            eval "$cmd"
+        fi
+    done
+fi
 
 if [[ "$1" != "--final" ]]; then
     echo -e "\n${CYAN}========================================${NC}"
