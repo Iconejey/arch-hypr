@@ -23,7 +23,7 @@ echo -e "\n${CYAN}========================================${NC}"
 echo -e "${CYAN}Starting Installation...${NC}"
 echo -e "${CYAN}========================================${NC}\n"
 
-declare -a installed_pkgs
+declare -a all_pkgs_status
 declare -a uninstalled_pkgs
 declare -A uninstalled_cmds
 
@@ -45,50 +45,52 @@ while IFS=, read -r pkg cmd; do
     fi
 
     if [ "$is_installed" = true ]; then
-        installed_pkgs+=("$pkg")
+        all_pkgs_status+=("${GREEN}  - $pkg${NC}")
     else
         uninstalled_pkgs+=("$pkg")
         uninstalled_cmds["$pkg"]="$cmd"
+        all_pkgs_status+=("${YELLOW}  - $pkg${NC}")
     fi
 done < <(tail -n +2 software.csv)
 
-echo -e "\n${CYAN}--- Installation Summary ---${NC}"
-echo -e "${GREEN}Already Installed:${NC}"
-for p in "${installed_pkgs[@]}"; do echo "  - $p"; done
-echo -e "\n${YELLOW}To be Installed:${NC}"
-for p in "${uninstalled_pkgs[@]}"; do echo "  - $p"; done
-echo -e "${CYAN}----------------------------${NC}\n"
+echo -e "\n${CYAN}--- Packages Status ---${NC}"
+for status in "${all_pkgs_status[@]}"; do echo -e "$status"; done
+echo -e "${CYAN}-----------------------${NC}\n"
 
-read -p "Do you want to continue with the installation? (y/N) " confirm
-if [[ ! $confirm =~ ^[Yy]$ ]]; then
-    echo -e "${RED}Installation aborted by user.${NC}"
-    exit 1
+if [ ${#uninstalled_pkgs[@]} -eq 0 ]; then
+    echo -e "${GREEN}All software.csv packages are already installed!${NC}"
+else
+    read -p "Do you want to continue with the installation of the missing packages? (y/N) " confirm
+    if [[ ! $confirm =~ ^[Yy]$ ]]; then
+        echo -e "${RED}Installation aborted by user.${NC}"
+        exit 1
+    fi
+
+    echo -e "\n${YELLOW}Running full system upgrade...${NC}"
+    sudo pacman -Syu --noconfirm
+
+    # Second pass for installation: actual installation
+    for pkg in "${uninstalled_pkgs[@]}"; do
+        cmd="${uninstalled_cmds[$pkg]}"
+
+        # Formatting command to bypass confirmation
+        if [[ "$cmd" == "yay "* ]]; then
+            cmd="$cmd --noconfirm --needed --answerdiff None --answerclean None --mflags \"--noconfirm\""
+        fi
+        if [[ "$cmd" == *"makepkg -si"* ]]; then
+            cmd="${cmd/makepkg -si/makepkg -si --noconfirm}"
+        fi
+        if [[ "$cmd" == *"pacman -S "* ]]; then
+            cmd="${cmd/pacman -S /pacman -S --noconfirm }"
+        fi
+        if [[ "$pkg" == "oh-my-zsh" ]]; then
+            cmd='sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended'
+        fi
+
+        echo -e "${YELLOW}[ !! ]${NC} Installing $pkg..."
+        eval "$cmd"
+    done
 fi
-
-echo -e "\n${YELLOW}Running full system upgrade...${NC}"
-sudo pacman -Syu --noconfirm
-
-# Second pass for installation: actual installation
-for pkg in "${uninstalled_pkgs[@]}"; do
-    cmd="${uninstalled_cmds[$pkg]}"
-
-    # Formatting command to bypass confirmation
-    if [[ "$cmd" == "yay "* ]]; then
-        cmd="$cmd --noconfirm --needed --answerdiff None --answerclean None --mflags \"--noconfirm\""
-    fi
-    if [[ "$cmd" == *"makepkg -si"* ]]; then
-        cmd="${cmd/makepkg -si/makepkg -si --noconfirm}"
-    fi
-    if [[ "$cmd" == *"pacman -S "* ]]; then
-        cmd="${cmd/pacman -S /pacman -S --noconfirm }"
-    fi
-    if [[ "$pkg" == "oh-my-zsh" ]]; then
-        cmd='sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended'
-    fi
-
-    echo -e "${YELLOW}[ !! ]${NC} Installing $pkg..."
-    eval "$cmd"
-done
 
 echo -e "\n${CYAN}========================================${NC}"
 echo -e "${CYAN}Applying manual configurations...${NC}"
