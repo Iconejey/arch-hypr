@@ -12,7 +12,6 @@ function applyConfig(source, dest, name) {
 		return;
 	}
 
-	// Backup existing configuration if it exists and is not a symlink to our source
 	if (fs.existsSync(dest) || fs.lstatSync(dest, { throwIfNoEntry: false })) {
 		const is_symlink = fs.lstatSync(dest).isSymbolicLink();
 		if (is_symlink) {
@@ -44,6 +43,15 @@ if (fs.existsSync(source_dir)) {
 	const config_items = fs.readdirSync(source_dir);
 	for (const item_name of config_items) {
 		const source_path = path.join(source_dir, item_name);
+
+		if (item_name === 'bin') {
+			const bin_dest = path.join(os.homedir(), '.local', 'bin');
+			if (!fs.existsSync(bin_dest)) fs.mkdirSync(bin_dest, { recursive: true });
+			fs.readdirSync(source_path).forEach(file => {
+				applyConfig(path.join(source_path, file), path.join(bin_dest, file), `bin/${file}`);
+			});
+			continue;
+		}
 
 		if (item_name === 'zsh') {
 			const zshrc_source = path.join(source_path, '.zshrc');

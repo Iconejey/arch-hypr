@@ -1,0 +1,29 @@
+#!/usr/bin/env node
+const { execSync, spawn } = require('child_process');
+
+const args = process.argv.slice(2);
+
+let useNewWindow = true;
+try {
+	const activeWsStr = execSync('hyprctl activeworkspace -j', { stdio: 'pipe' }).toString();
+	const activeWs = JSON.parse(activeWsStr).id;
+
+	const clientsStr = execSync('hyprctl clients -j', { stdio: 'pipe' }).toString();
+	const clients = JSON.parse(clientsStr);
+
+	const chromeInWs = clients.some(c => (c.class === 'google-chrome' || c.initialClass === 'google-chrome') && c.workspace.id === activeWs);
+
+	if (chromeInWs) {
+		useNewWindow = false;
+	}
+} catch (e) {
+	// Silently fallback to forcing new window if hyprctl fails
+}
+
+const chromeArgs = useNewWindow ? ['--new-window', ...args] : args;
+
+// Spawn chrome and detach it completely from this wrapper
+spawn('google-chrome-stable', chromeArgs, {
+	stdio: 'ignore', // Don't inherit stdio to ensure it can detach
+	detached: true
+}).unref();

@@ -182,3 +182,4 @@ wifi-qr() {
         echo "Failed to connect to $ssid."
     fi
 }
+export PATH=$HOME/.local/bin:$PATH

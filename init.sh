@@ -113,6 +113,21 @@ echo -e "${CYAN}========================================${NC}"
 # Now node is installed along with the rest, we run link.js
 node link.js
 
+echo -e "${YELLOW}Making Chrome smart globally for Hyprland...${NC}"
+mkdir -p ~/.local/share/applications
+# Create a local override for Chrome's desktop profiles if they are installed
+for chrome_desktop in google-chrome.desktop com.google.Chrome.desktop; do
+    if [ -f /usr/share/applications/$chrome_desktop ]; then
+        cp /usr/share/applications/$chrome_desktop ~/.local/share/applications/$chrome_desktop
+        # Replace calls to the original chrome executable directly with our smart wrapper
+        sed -i "s|^Exec=/usr/bin/google-chrome-stable|Exec=$HOME/.local/bin/smart-chrome|g" ~/.local/share/applications/$chrome_desktop
+    fi
+done
+
+# Set them as default for XDG globally
+xdg-settings set default-web-browser google-chrome.desktop 2>/dev/null || true
+update-desktop-database ~/.local/share/applications 2>/dev/null || true
+
 echo -e "\n${CYAN}========================================${NC}"
 read -p "Do you want to set up Google Drive sync now? (y/N) " run_drive
 if [[ $run_drive =~ ^[Yy]$ ]]; then
