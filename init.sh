@@ -102,12 +102,6 @@ sudo systemctl enable --now systemd-networkd 2>/dev/null || true
 sudo ln -sfn /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
 sudo systemctl restart iwd 2>/dev/null || true
 
-# Manually link configurations so the new terminal looks right immediately
-mkdir -p ~/.config/hypr ~/.config/kitty
-ln -sfn "$(pwd)/configs/hypr/hyprland.conf" ~/.config/hypr/hyprland.conf
-ln -sfn "$(pwd)/configs/kitty/kitty.conf" ~/.config/kitty/kitty.conf
-ln -sfn "$(pwd)/configs/zsh/.zshrc" ~/.zshrc
-
 echo -e "${YELLOW}Changing default shell to ZSH...${NC}"
 sudo chsh -s $(which zsh) "$USER"
 
