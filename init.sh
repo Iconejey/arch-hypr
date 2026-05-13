@@ -142,6 +142,26 @@ if [[ $run_qr =~ ^[Yy]$ ]]; then
 fi
 
 echo -e "\n${CYAN}========================================${NC}"
+read -p "Do you want to enroll your fingerprint for biometry authentication now? (y/N) " run_fprint
+if [[ $run_fprint =~ ^[Yy]$ ]]; then
+    echo -e "${YELLOW}Starting fingerprint service...${NC}"
+    # fprintd is DBus activated, so just starting it or interacting with it is enough
+    sudo systemctl restart fprintd
+    
+    echo -e "${YELLOW}Please swipe your finger on the fingerprint reader...${NC}"
+    sudo fprintd-enroll "$USER"
+    
+    echo -e "${YELLOW}Configuring sudo to use fingerprint authentication...${NC}"
+    # Add pam_fprintd.so to /etc/pam.d/sudo if not already present
+    if ! grep -q "pam_fprintd.so" /etc/pam.d/sudo; then
+        sudo sed -i '1s/^/auth            sufficient      pam_fprintd.so\n/' /etc/pam.d/sudo
+        echo -e "${GREEN}Sudo configured for fingerprint!${NC}"
+    else
+        echo -e "${GREEN}Sudo is already configured for fingerprint.${NC}"
+    fi
+fi
+
+echo -e "\n${CYAN}========================================${NC}"
 echo -e "${GREEN}Installation Complete!${NC}"
 echo -e "${CYAN}========================================${NC}\n"
 

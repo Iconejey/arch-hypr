@@ -31,3 +31,6 @@ xdg-utils,yay -S xdg-utils
 gnome-keyring,yay -S gnome-keyring
 libsecret,yay -S libsecret
 seahorse,yay -S seahorse
+libfprint-tod,yay -S libfprint-tod
+libfprint-2-tod1-xps9300-bin,yay -S libfprint-2-tod1-xps9300-bin
+fprintd,yay -S fprintd
