@@ -66,8 +66,13 @@ else
         exit 1
     fi
 
-    echo -e "\n${YELLOW}Running full system upgrade...${NC}"
-    sudo pacman -Syu --noconfirm
+    echo -e "\n${YELLOW}Running full system upgrade (this may take a while)...${NC}"
+    if ! upgrade_output=$(sudo pacman -Syu --noconfirm 2>&1); then
+        echo -e "${RED}System upgrade failed! Error output:${NC}"
+        echo "$upgrade_output"
+    else
+        echo -e "${GREEN}System upgrade completed successfully.${NC}"
+    fi
 
     # Second pass for installation: actual installation
     for pkg in "${uninstalled_pkgs[@]}"; do
@@ -87,8 +92,13 @@ else
             cmd='sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended'
         fi
 
-        echo -e "${YELLOW}[ !! ]${NC} Installing $pkg..."
-        eval "$cmd"
+        echo -en "${YELLOW}[ .. ]${NC} Installing $pkg... "
+        if ! install_output=$(eval "$cmd" 2>&1); then
+            echo -e "\n${RED}[ FF ] Failed to install $pkg! Error output:${NC}"
+            echo "$install_output"
+        else
+            echo -e "\r${GREEN}[ OK ]${NC} Installing $pkg... Done."
+        fi
     done
 fi
 
@@ -113,7 +123,7 @@ echo -e "${CYAN}========================================${NC}"
 # Now node is installed along with the rest, we run link.js
 node link.js
 
-echo -e "${YELLOW}Making Chrome smart globally for Hyprland...${NC}"
+echo -e "\n${YELLOW}Making Chrome smart globally for Hyprland...${NC}"
 mkdir -p ~/.local/share/applications
 # Create a local override for Chrome's desktop profiles if they are installed
 for chrome_desktop in google-chrome.desktop com.google.Chrome.desktop; do
