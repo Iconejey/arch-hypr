@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+# Lower sensitivity for both touchpad and mouse
+hyprctl keyword 'device[dell097d:00-04f3:311c-touchpad]:sensitivity' -1.0
+hyprctl keyword 'device[epic-mouse-v1]:sensitivity' -1.0
+hyprctl keyword 'input:sensitivity' -1.0
+
+# Run hyprpicker
+hyprpicker --scale=1 --radius=200 --autocopy
+
+# Restore sensitivity based on your hyprland.conf defaults
+hyprctl keyword 'device[dell097d:00-04f3:311c-touchpad]:sensitivity' 0.2
+hyprctl keyword 'device[epic-mouse-v1]:sensitivity' -0.5
+hyprctl keyword 'input:sensitivity' 0.0
