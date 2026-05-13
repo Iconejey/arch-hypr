@@ -118,6 +118,13 @@ echo -e "${CYAN}========================================${NC}"
 node link.js
 
 echo -e "\n${CYAN}========================================${NC}"
+read -p "Do you want to set up Google Drive sync now? (y/N) " run_drive
+if [[ $run_drive =~ ^[Yy]$ ]]; then
+    echo -e "${CYAN}Setting up Google Drive...${NC}"
+    npm run drive-setup
+fi
+
+echo -e "\n${CYAN}========================================${NC}"
 echo -e "${GREEN}Installation Complete!${NC}"
 echo -e "${CYAN}========================================${NC}\n"
 # Display system info

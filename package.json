@@ -15,6 +15,7 @@
 	"type": "commonjs",
 	"main": "link.js",
 	"scripts": {
-		"link": "node link.js"
+		"link": "node link.js",
+		"drive-setup": "node drive-setup.js"
 	}
 }

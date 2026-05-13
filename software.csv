@@ -26,3 +26,5 @@ bluez-utils,yay -S bluez-utils
 blueman,yay -S blueman
 neofetch,yay -S neofetch
 zbar,yay -S zbar
+rclone,yay -S rclone
+xdg-utils,yay -S xdg-utils
