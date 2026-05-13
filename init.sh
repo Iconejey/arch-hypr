@@ -119,8 +119,8 @@ mkdir -p ~/.local/share/applications
 for chrome_desktop in google-chrome.desktop com.google.Chrome.desktop; do
     if [ -f /usr/share/applications/$chrome_desktop ]; then
         cp /usr/share/applications/$chrome_desktop ~/.local/share/applications/$chrome_desktop
-        # Replace calls to the original chrome executable directly with our smart wrapper
-        sed -i "s|^Exec=/usr/bin/google-chrome-stable|Exec=$HOME/.local/bin/smart-chrome|g" ~/.local/share/applications/$chrome_desktop
+        # Replace calls to the original chrome executable directly with our smart wrapper and add the password store flag
+        sed -i "s|^Exec=/usr/bin/google-chrome-stable|Exec=$HOME/.local/bin/smart-chrome --password-store=gnome|g" ~/.local/share/applications/$chrome_desktop
     fi
 done
 

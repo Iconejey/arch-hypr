@@ -28,3 +28,6 @@ neofetch,yay -S neofetch
 zbar,yay -S zbar
 rclone,yay -S rclone
 xdg-utils,yay -S xdg-utils
+gnome-keyring,yay -S gnome-keyring
+libsecret,yay -S libsecret
+seahorse,yay -S seahorse
