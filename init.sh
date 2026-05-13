@@ -125,8 +125,15 @@ if [[ $run_drive =~ ^[Yy]$ ]]; then
 fi
 
 echo -e "\n${CYAN}========================================${NC}"
+read -p "Do you want to scan a WiFi QR code to connect to a network now? (y/N) " run_qr
+if [[ $run_qr =~ ^[Yy]$ ]]; then
+    qr-wifi
+fi
+
+echo -e "\n${CYAN}========================================${NC}"
 echo -e "${GREEN}Installation Complete!${NC}"
 echo -e "${CYAN}========================================${NC}\n"
+
 # Display system info
 neofetch
 
