@@ -16,6 +16,7 @@
 	"main": "link.js",
 	"scripts": {
 		"link": "node link.js",
-		"drive-setup": "node drive-setup.js"
+		"drive-setup": "node drive-setup.js",
+		"astal": "mkdir -p ~/.config/astal/node_modules && ln -sfn /usr/share/astal/gjs ~/.config/astal/node_modules/astal && ags run --gtk 3 ~/.config/astal/app.js"
 	}
 }
