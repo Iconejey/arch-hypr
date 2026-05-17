@@ -19,7 +19,7 @@ for (const slider of document.querySelectorAll('.slider')) {
 		e.target.style.setProperty('--val', `${e.target.value}%`);
 
 		// Optional: Update the text next to the slider for the mockup
-		const value_text = e.target.parentElement.querySelector('span[class]');
+		const value_text = e.target.parentElement.querySelector('span.label');
 		if (value_text) value_text.textContent = `${e.target.value}%`;
 	});
 }
