@@ -72,22 +72,35 @@ for (const button of document.querySelectorAll('.management-toggle')) {
 	});
 }
 
-document.querySelector('#share-wifi').onclick = e => {
-	e.stopPropagation();
-	const list = document.querySelector('.wifi-management.list');
-	const list_visible = list.classList.toggle('hidden');
+// Wifi tabs behavior
+const wifi_views = document.getElementById('wifi-views');
+const wifi_views_container = document.getElementById('wifi-views-container');
+const wifi_tab_buttons = document.querySelectorAll('#wifi-tabs button');
 
-	const share = document.querySelector('#wifi-share');
-	share.classList.toggle('hidden', !list_visible);
-	share.classList.toggle('dim', !list_visible);
+const updateWifiViewHeight = () => {
+	// Determine the height of the currently visible view
+	const active_index = Array.from(wifi_tab_buttons).findIndex(b => b.classList.contains('active'));
+	if (active_index !== -1 && wifi_views) {
+		const active_view = wifi_views.children[active_index];
+		wifi_views_container.style.height = active_view.offsetHeight + 'px';
+
+		// Update view opacity logic
+		Array.from(wifi_views.children).forEach((view, i) => {
+			view.classList.toggle('inactive-view', i !== active_index);
+		});
+	}
 };
 
-document.querySelector('#scan-wifi').onclick = e => {
-	e.stopPropagation();
-	document.querySelector('#wifi-scan').classList.toggle('hidden');
-	document.querySelector('#wifi-scan').classList.toggle('dim');
-	document.querySelector('.wifi-management.list').classList.toggle('hidden');
-};
+for (const button of wifi_tab_buttons) {
+	button.addEventListener('click', () => {
+		const index = button.dataset.view;
+		wifi_views.style.transform = `translateX(calc(-${index} * (var(--bar-width) + 16px)))`;
+		setTimeout(updateWifiViewHeight, 50); // Slight delay to ensure content is measured
+	});
+}
+
+// Ensure initial height is calculated after fonts/styles load
+window.addEventListener('load', updateWifiViewHeight);
 
 // Generate QR Code
 new QRCode(document.querySelector('.wifi-qr-code'), {

@@ -92,73 +92,79 @@
 					</div>
 				</div>
 
-				<!-- Share and scan wifi QR codes -->
+				<!-- Wifi mode (List, Scan, Share) -->
 				<div class="line wifi-management dedicated hidden">
-					<!-- Scan -->
-					<div class="group panel wifi-management">
-						<button class="wifi-management" id="scan-wifi" title="Scan QR code to connect to a wifi network">
+					<div class="group panel multi-toggle wifi-management" id="wifi-tabs">
+						<button class="active" data-view="0" title="Wifi networks list">
+							<i>list</i>
+							<span>List</span>
+						</button>
+
+						<button data-view="1" title="Scan QR code to connect to a wifi network">
 							<i>qr_code_scanner</i>
 							<span>Scan</span>
 						</button>
-					</div>
 
-					<!-- Share -->
-					<div class="group panel wifi-management">
-						<button class="wifi-management" id="share-wifi" title="Share wifi network with a QR code">
+						<button data-view="2" title="Share wifi network with a QR code">
 							<i>qr_code</i>
 							<span>Share</span>
 						</button>
 					</div>
 				</div>
 
-				<!-- Share wifi QR code -->
-				<div class="line dedicated hidden" id="wifi-share">
-					<div class="group panel">
-						<div class="wifi-qr-code"></div>
-						<span class="small center-text no-trunc">hiEudZiR37d2nGdiz</span>
-					</div>
-				</div>
+				<!-- Wifi views container -->
+				<div class="line wifi-management dedicated hidden" id="wifi-views-container">
+					<div id="wifi-views">
+						<!-- Wifi networks list -->
+						<div class="line list wifi-management" id="wifi-list">
+							<div class="group panel toggle-control wifi-management">
+								<button title="FreeWifi_secure">
+									<i>signal_wifi_4_bar</i>
+									<span>FreeWifi_secure</span>
+								</button>
 
-				<!-- Scan wifi QR code -->
-				<div class="line dedicated hidden" id="wifi-scan">
-					<div class="group panel">
-						<img id="camera" src="./camera.png" />
-						<div class="overlay-mask"></div>
-					</div>
-				</div>
+								<button title="SFR WiFi Public">
+									<i>network_wifi_3_bar</i>
+									<span>SFR WiFi Public</span>
+								</button>
 
-				<!-- Wifi networks list -->
-				<div class="line list wifi-management dedicated hidden">
-					<div class="group panel toggle-control wifi-management">
-						<button title="FreeWifi_secure">
-							<i>signal_wifi_4_bar</i>
-							<span>FreeWifi_secure</span>
-						</button>
+								<button title="Orange WiFi Pro">
+									<i>network_wifi_2_bar</i>
+									<span>Orange WiFi Pro</span>
+								</button>
 
-						<button title="SFR WiFi Public">
-							<i>network_wifi_3_bar</i>
-							<span>SFR WiFi Public</span>
-						</button>
+								<button title="Bouygues Telecom Wi-Fi">
+									<i>network_wifi_1_bar</i>
+									<span>Bouygues Telecom Wi-Fi</span>
+								</button>
 
-						<button title="Orange WiFi Pro">
-							<i>network_wifi_2_bar</i>
-							<span>Orange WiFi Pro</span>
-						</button>
+								<button title="FreeWifi_secure_5G">
+									<i>network_wifi_1_bar</i>
+									<span>FreeWifi_secure_5G</span>
+								</button>
 
-						<button title="Bouygues Telecom Wi-Fi">
-							<i>network_wifi_1_bar</i>
-							<span>Bouygues Telecom Wi-Fi</span>
-						</button>
+								<button title="FreeWifi_secure_5G">
+									<i>network_wifi_1_bar</i>
+									<span>FreeWifi_secure_5G</span>
+								</button>
+							</div>
+						</div>
 
-						<button title="FreeWifi_secure_5G">
-							<i>network_wifi_1_bar</i>
-							<span>FreeWifi_secure_5G</span>
-						</button>
+						<!-- Scan wifi QR code -->
+						<div class="line wifi-management inactive-view" id="wifi-scan">
+							<div class="group panel wifi-management">
+								<img id="camera" src="./camera.png" />
+								<div class="overlay-mask"></div>
+							</div>
+						</div>
 
-						<button title="FreeWifi_secure_5G">
-							<i>network_wifi_1_bar</i>
-							<span>FreeWifi_secure_5G</span>
-						</button>
+						<!-- Share wifi QR code -->
+						<div class="line wifi-management inactive-view" id="wifi-share">
+							<div class="group panel wifi-management">
+								<div class="wifi-qr-code"></div>
+								<span class="small center-text no-trunc">hiEudZiR37d2nGdiz</span>
+							</div>
+						</div>
 					</div>
 				</div>
 

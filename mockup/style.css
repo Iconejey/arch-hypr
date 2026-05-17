@@ -47,7 +47,8 @@ main {
 }
 
 .bar {
-	width: 350px;
+	--bar-width: 350px;
+	width: var(--bar-width);
 	display: flex;
 	flex-direction: column;
 	gap: 16px;
@@ -207,6 +208,31 @@ main {
 			}
 		}
 
+		&#wifi-views-container {
+			overflow: hidden;
+			padding: 0;
+			background: transparent;
+			box-shadow: none;
+			filter: drop-shadow(0 0 10px rgba(0, 0, 0, 0.7));
+
+			& #wifi-views {
+				display: flex;
+				transition: transform 0.3s ease;
+				width: calc(var(--bar-width) * 3 + 32px);
+				align-items: flex-start;
+				gap: 16px;
+
+				& > .line {
+					width: var(--bar-width);
+					flex-shrink: 0;
+
+					& .group {
+						box-shadow: none;
+					}
+				}
+			}
+		}
+
 		&#wifi-share {
 			height: 385px;
 
@@ -226,12 +252,30 @@ main {
 		}
 
 		&#wifi-scan {
-			height: calc(350px / 15 * 12);
+			height: calc(var(--bar-width) / 15 * 12);
 
-			& .group #camera {
-				width: 100%;
-				border-radius: 12px;
-				object-fit: cover;
+			& .group {
+				position: relative;
+				overflow: hidden;
+
+				& #camera {
+					width: 100%;
+					border-radius: 12px;
+					object-fit: cover;
+				}
+
+				& .overlay-mask {
+					position: absolute;
+					top: 50%;
+					left: 50%;
+					transform: translate(-50%, -50%);
+					width: 200px;
+					height: 200px;
+					border: 2px solid white;
+					border-radius: 20px;
+					box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+					pointer-events: none;
+				}
 			}
 		}
 
