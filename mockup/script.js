@@ -37,6 +37,9 @@ for (const button of document.querySelectorAll('.management-toggle')) {
 		// Hide all dedicated lines
 		for (const dedicated of document.querySelectorAll('.line.dedicated')) dedicated.classList.add('hidden');
 
+		// Hide all menu-only labels
+		for (const menu_only of document.querySelectorAll('.menu-only')) menu_only.classList.add('hidden');
+
 		// If already toggled, just reset
 		if (target_class === toggled_class) {
 			toggled_class = null;
@@ -57,6 +60,9 @@ for (const button of document.querySelectorAll('.management-toggle')) {
 				// If dedicated, show it
 				if (line.classList.contains('dedicated')) line.classList.remove('hidden');
 
+				// Show menu-only labels
+				for (const menu_only of line.querySelectorAll('.menu-only')) menu_only.classList.remove('hidden');
+
 				// Dim non-target groups in target line
 				for (const group of line.querySelectorAll('.group')) {
 					if (!group.classList.contains(target_class)) group.classList.add('dim');
@@ -65,3 +71,10 @@ for (const button of document.querySelectorAll('.management-toggle')) {
 		}
 	});
 }
+
+document.querySelector('#share-wifi').onclick = e => {
+	e.stopPropagation();
+	document.querySelector('#wifi-qr-code-line').classList.toggle('hidden');
+	document.querySelector('#wifi-qr-code-line').classList.toggle('dim');
+	document.querySelector('.wifi-management.list').classList.toggle('hidden');
+};

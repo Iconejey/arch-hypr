@@ -17,8 +17,8 @@
 					<div class="group panel double power-management">
 						<button class="management-toggle" data-target="power-management" title="Power management">
 							<i>power_settings_new</i>
-							<span class="clock">12:43</span>
-							<span class="date">May 17</span>
+							<span class="bold">12:43</span>
+							<span class="small">May 17</span>
 						</button>
 					</div>
 
@@ -27,6 +27,7 @@
 						<button class="management-toggle" data-target="battery-management" title="Battery management">
 							<i>battery_android_frame_5</i>
 							<span>85%</span>
+							<span class="small right menu-only hidden">2 h 23 min</span>
 						</button>
 					</div>
 				</div>
@@ -35,7 +36,7 @@
 				<div class="line power-management dedicated hidden">
 					<div class="group panel power-management">
 						<button title="Shut down">
-							<i>power_settings_circle</i>
+							<i>close</i>
 							<span>Shut down</span>
 						</button>
 
@@ -71,31 +72,65 @@
 					</div>
 				</div>
 
-				<!-- Battery remaining time -->
-				<div class="line battery-management dedicated hidden">
-					<div class="group panel battery-management">
-						<button title="Battery remaining time">
-							<i>schedule</i>
-							<span>2 h 23 min left</span>
-						</button>
-					</div>
-				</div>
-
 				<!-- Wifi and bluetooth -->
-				<div class="line">
+				<div class="line wifi-management">
 					<!-- Wifi -->
-					<div class="group panel">
-						<button class="active" title="Wifi network">
+					<div class="group panel wifi-management">
+						<button class="active management-toggle" data-target="wifi-management" title="Wifi network (connected to Livebox-C940)">
 							<i>network_wifi</i>
 							<span>Livebox-C940</span>
+							<i id="share-wifi" class="right menu-only hidden btn" title="Share wifi network with a QR code">share</i>
 						</button>
 					</div>
 
 					<!-- Bluetooth -->
 					<div class="group panel">
-						<button class="active" title="Bluetooth devices">
+						<button title="Bluetooth devices (not connected)">
 							<i>bluetooth</i>
-							<span>On</span>
+							<span>Not connected</span>
+						</button>
+					</div>
+				</div>
+
+				<!-- Share wifi QR code -->
+				<div class="line list dedicated hidden" id="wifi-qr-code-line">
+					<div class="group panel">
+						<div class="wifi-qr-code"></div>
+						<span class="small center-text no-trunc">hiEudZiR37d2nGdiz</span>
+					</div>
+				</div>
+
+				<!-- Wifi networks list -->
+				<div class="line list wifi-management dedicated hidden">
+					<div class="group panel toggle-control wifi-management">
+						<button title="FreeWifi_secure">
+							<i>signal_wifi_4_bar</i>
+							<span>FreeWifi_secure</span>
+						</button>
+
+						<button title="SFR WiFi Public">
+							<i>network_wifi_3_bar</i>
+							<span>SFR WiFi Public</span>
+						</button>
+
+						<button title="Orange WiFi Pro">
+							<i>network_wifi_2_bar</i>
+							<span>Orange WiFi Pro</span>
+						</button>
+
+						<button title="Bouygues Telecom Wi-Fi">
+							<i>network_wifi_1_bar</i>
+							<span>Bouygues Telecom Wi-Fi</span>
+						</button>
+
+						<button title="FreeWifi_secure_5G">
+							<i>network_wifi_1_bar</i>
+							<span>FreeWifi_secure_5G</span>
+						</button>
+
+						<button title="FreeWifi_secure_5G">
+							<i>network_wifi_1_bar</i>
+							<span>FreeWifi_secure_5G</span>
 						</button>
 					</div>
 				</div>

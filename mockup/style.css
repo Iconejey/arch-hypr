@@ -17,6 +17,15 @@ i {
 	font-family: 'Material Symbols Outlined';
 	font-style: normal;
 	font-size: 24px;
+
+	&.btn {
+		width: 32px;
+		height: 32px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 50%;
+	}
 }
 
 main {
@@ -47,24 +56,29 @@ main {
 		display: flex;
 		flex-direction: row;
 		gap: 16px;
+		height: 68px;
 		transition:
 			opacity 0.3s ease,
 			margin-top 0.3s ease,
 			filter 0.3s ease,
 			height 0.3s ease;
-		height: 68px;
 
 		& .group {
 			display: flex;
 			flex-direction: row;
 			gap: 8px;
 			padding: 4px;
-			flex: 1;
-			min-width: 0;
 			max-width: 100%;
+			transition: flex 0.15s ease;
+			flex: 1;
+			min-width: 65px;
 
 			&.double {
 				flex: 2;
+			}
+
+			&.dim {
+				flex: 0.2;
 			}
 
 			&.slider-control {
@@ -125,19 +139,30 @@ main {
 				text-align: left;
 
 				/* Truncate long texts */
-				& > span {
+				& > span:not(.no-trunc) {
 					white-space: nowrap;
 					overflow: hidden;
 					text-overflow: ellipsis;
 				}
 
+				& .menu-only.hidden {
+					display: none;
+				}
+
+				& .right {
+					margin-left: auto;
+				}
+
 				/* Prevent icons from shrinking */
 				& > i {
 					flex-shrink: 0;
+
+					&.btn:hover {
+						background-color: rgba(255, 255, 255, 0.1);
+					}
 				}
 
-				&:hover,
-				&:focus {
+				&:hover {
 					background-color: #242424;
 
 					&.active {
@@ -148,21 +173,29 @@ main {
 				&.active {
 					background-color: #c3e88d;
 					color: #191919;
+
+					& > i.btn:hover {
+						background-color: rgba(0, 0, 0, 0.1);
+					}
 				}
 
 				&.center {
 					justify-content: center;
 				}
-
-				& .clock {
-					font-weight: bold;
-					font-size: 18px;
-				}
-
-				& .date {
-					opacity: 0.6;
-				}
 			}
+		}
+
+		& .bold {
+			font-weight: bold;
+			font-size: 18px;
+		}
+
+		& .small {
+			opacity: 0.6;
+		}
+
+		& .center-text {
+			text-align: center;
 		}
 
 		&.dedicated.hidden {
@@ -171,20 +204,20 @@ main {
 			height: 0px;
 			margin-top: -16px;
 		}
+
+		&.list {
+			height: 375px;
+
+			& .group {
+				flex-direction: column;
+				overflow-y: auto;
+			}
+		}
 	}
 }
 
 .dim {
-	opacity: 0.8;
-	filter: brightness(0.6);
+	opacity: 0.7;
+	filter: brightness(0.5);
 	pointer-events: none;
-}
-
-.list {
-	width: 350px;
-
-	& .notif {
-		height: 100px;
-		padding: 16px;
-	}
 }
