@@ -11,80 +11,110 @@
 	<body>
 		<main>
 			<div class="bar">
-				<div class="line battery-management">
-					<div class="group panel double">
-						<button>
+				<!-- Power, clock and battery -->
+				<div class="line battery-management power-management">
+					<!-- Power and clock -->
+					<div class="group panel double power-management">
+						<button class="management-toggle" data-target="power-management" title="Power management">
 							<i>power_settings_new</i>
-							<span class="label clock">12:43</span>
-							<span class="label date">May 17</span>
+							<span class="clock">12:43</span>
+							<span class="date">May 17</span>
 						</button>
 					</div>
 
+					<!-- Battery -->
 					<div class="group panel battery-management">
-						<button class="management-toggle" data-target="battery-management">
+						<button class="management-toggle" data-target="battery-management" title="Battery management">
 							<i>battery_android_frame_5</i>
-							<span class="battery-value">85%</span>
+							<span>85%</span>
 						</button>
 					</div>
 				</div>
 
+				<!-- Power actions -->
+				<div class="line power-management dedicated hidden">
+					<div class="group panel power-management">
+						<button title="Shut down">
+							<i>power_settings_circle</i>
+							<span>Shut down</span>
+						</button>
+
+						<button title="Sleep">
+							<i>bedtime</i>
+							<span>Sleep</span>
+						</button>
+
+						<button title="Restart">
+							<i>restart_alt</i>
+							<span>Restart</span>
+						</button>
+					</div>
+				</div>
+
+				<!-- Battery mode -->
 				<div class="line battery-management dedicated hidden">
 					<div class="group panel multi-toggle battery-management">
-						<button class="active">
+						<button class="active" title="Eco mode">
 							<i>nest_eco_leaf</i>
-							<span class="label">Eco</span>
+							<span>Eco</span>
 						</button>
 
-						<button>
+						<button title="Auto mode">
 							<i>magic_button</i>
-							<span class="label">Auto</span>
+							<span>Auto</span>
 						</button>
 
-						<button>
+						<button title="Performance mode">
 							<i>mode_heat</i>
-							<span class="label">Max</span>
+							<span>Perf</span>
 						</button>
 					</div>
 				</div>
 
+				<!-- Battery remaining time -->
 				<div class="line battery-management dedicated hidden">
 					<div class="group panel battery-management">
-						<button>
+						<button title="Battery remaining time">
 							<i>schedule</i>
-							<span class="label">2 h 23 min left</span>
+							<span>2 h 23 min left</span>
 						</button>
 					</div>
 				</div>
 
+				<!-- Wifi and bluetooth -->
 				<div class="line">
+					<!-- Wifi -->
 					<div class="group panel">
-						<button class="active">
+						<button class="active" title="Wifi network">
 							<i>network_wifi</i>
-							<span class="label">Livebox-C940</span>
+							<span>Livebox-C940</span>
 						</button>
 					</div>
 
+					<!-- Bluetooth -->
 					<div class="group panel">
-						<button class="active">
+						<button class="active" title="Bluetooth devices">
 							<i>bluetooth</i>
-							<span class="bluetooth">On</span>
+							<span>On</span>
 						</button>
 					</div>
 				</div>
 
+				<!-- Brightness -->
 				<div class="line">
-					<div class="group panel slider-control">
+					<div class="group panel slider-control" title="Screen brightness">
 						<i>brightness_medium</i>
 						<input type="range" class="slider" min="0" max="100" value="50" style="--val: 50%" />
-						<span class="brightness">50%</span>
+						<span>50%</span>
 					</div>
 				</div>
 
+				<!-- Volume -->
 				<div class="line">
-					<div class="group panel slider-control">
+					<div class="group panel slider-control" title="Volume">
 						<i>volume_up</i>
 						<input type="range" class="slider" min="0" max="100" value="75" style="--val: 75%" />
-						<span class="volume">75%</span>
+						<span>75%</span>
 					</div>
 				</div>
 			</div>
