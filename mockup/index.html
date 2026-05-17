@@ -4,11 +4,90 @@
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<title>UI Prototype Mockup</title>
+		<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
 		<link rel="stylesheet" href="style.css" />
 		<script src="script.js" defer></script>
 	</head>
 	<body>
-		<div class="left bar"></div>
-		<div class="right bar"></div>
+		<main>
+			<div class="bar">
+				<div class="line battery-management">
+					<div class="group panel double">
+						<button>
+							<i>power_settings_new</i>
+							<span class="label clock">12:43</span>
+							<span class="label date">May 17</span>
+						</button>
+					</div>
+
+					<div class="group panel battery-management">
+						<button class="management-toggle" data-target="battery-management">
+							<i>battery_android_frame_5</i>
+							<span class="battery-value">85%</span>
+						</button>
+					</div>
+				</div>
+
+				<div class="line battery-management dedicated hidden">
+					<div class="group panel multi-toggle battery-management">
+						<button class="active">
+							<i>nest_eco_leaf</i>
+							<span class="label">Eco</span>
+						</button>
+
+						<button>
+							<i>magic_button</i>
+							<span class="label">Auto</span>
+						</button>
+
+						<button>
+							<i>mode_heat</i>
+							<span class="label">Max</span>
+						</button>
+					</div>
+				</div>
+
+				<div class="line battery-management dedicated hidden">
+					<div class="group panel battery-management">
+						<button>
+							<i>schedule</i>
+							<span class="label">2 h 23 min left</span>
+						</button>
+					</div>
+				</div>
+
+				<div class="line">
+					<div class="group panel">
+						<button class="active">
+							<i>network_wifi</i>
+							<span class="label">Livebox-C940</span>
+						</button>
+					</div>
+
+					<div class="group panel">
+						<button class="active">
+							<i>bluetooth</i>
+							<span class="bluetooth">On</span>
+						</button>
+					</div>
+				</div>
+
+				<div class="line">
+					<div class="group panel slider-control">
+						<i>brightness_medium</i>
+						<input type="range" class="slider" min="0" max="100" value="50" style="--val: 50%" />
+						<span class="brightness">50%</span>
+					</div>
+				</div>
+
+				<div class="line">
+					<div class="group panel slider-control">
+						<i>volume_up</i>
+						<input type="range" class="slider" min="0" max="100" value="75" style="--val: 75%" />
+						<span class="volume">75%</span>
+					</div>
+				</div>
+			</div>
+		</main>
 	</body>
 </html>
