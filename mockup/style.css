@@ -208,26 +208,30 @@ main {
 		}
 
 		&#wifi-share {
-			height: 300px;
+			height: 385px;
 
 			& .group {
 				flex-direction: column;
 				align-items: center;
 				gap: 16px;
 				padding: 16px;
+				background-color: #c6c6c6;
+				color: #191919;
 
-				& .wifi-qr-code {
-					max-height: 85%;
-
-					img {
-						image-rendering: pixelated;
-						max-height: 100%;
-						margin: 0 auto;
-						background-color: #c6c6c6;
-						padding: 8px;
-						border-radius: 6px;
-					}
+				& .wifi-qr-code img {
+					image-rendering: pixelated;
+					max-width: 100%;
 				}
+			}
+		}
+
+		&#wifi-scan {
+			height: calc(350px / 15 * 12);
+
+			& .group #camera {
+				width: 100%;
+				border-radius: 12px;
+				object-fit: cover;
 			}
 		}
 

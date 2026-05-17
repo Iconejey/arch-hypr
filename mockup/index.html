@@ -80,7 +80,6 @@
 						<button class="active management-toggle" data-target="wifi-management" title="Wifi network (connected to Livebox-C940)">
 							<i>network_wifi</i>
 							<span>Livebox-C940</span>
-							<i id="share-wifi" class="right menu-only hidden btn" title="Share wifi network with a QR code">share</i>
 						</button>
 					</div>
 
@@ -93,11 +92,38 @@
 					</div>
 				</div>
 
+				<!-- Share and scan wifi QR codes -->
+				<div class="line wifi-management dedicated hidden">
+					<!-- Scan -->
+					<div class="group panel wifi-management">
+						<button class="wifi-management" id="scan-wifi" title="Scan QR code to connect to a wifi network">
+							<i>qr_code_scanner</i>
+							<span>Scan</span>
+						</button>
+					</div>
+
+					<!-- Share -->
+					<div class="group panel wifi-management">
+						<button class="wifi-management" id="share-wifi" title="Share wifi network with a QR code">
+							<i>qr_code</i>
+							<span>Share</span>
+						</button>
+					</div>
+				</div>
+
 				<!-- Share wifi QR code -->
 				<div class="line dedicated hidden" id="wifi-share">
 					<div class="group panel">
 						<div class="wifi-qr-code"></div>
 						<span class="small center-text no-trunc">hiEudZiR37d2nGdiz</span>
+					</div>
+				</div>
+
+				<!-- Scan wifi QR code -->
+				<div class="line dedicated hidden" id="wifi-scan">
+					<div class="group panel">
+						<img id="camera" src="./camera.png" />
+						<div class="overlay-mask"></div>
 					</div>
 				</div>
 

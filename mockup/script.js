@@ -74,8 +74,18 @@ for (const button of document.querySelectorAll('.management-toggle')) {
 
 document.querySelector('#share-wifi').onclick = e => {
 	e.stopPropagation();
-	document.querySelector('#wifi-share').classList.toggle('hidden');
-	document.querySelector('#wifi-share').classList.toggle('dim');
+	const list = document.querySelector('.wifi-management.list');
+	const list_visible = list.classList.toggle('hidden');
+
+	const share = document.querySelector('#wifi-share');
+	share.classList.toggle('hidden', !list_visible);
+	share.classList.toggle('dim', !list_visible);
+};
+
+document.querySelector('#scan-wifi').onclick = e => {
+	e.stopPropagation();
+	document.querySelector('#wifi-scan').classList.toggle('hidden');
+	document.querySelector('#wifi-scan').classList.toggle('dim');
 	document.querySelector('.wifi-management.list').classList.toggle('hidden');
 };
 
