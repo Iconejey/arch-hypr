@@ -74,7 +74,17 @@ for (const button of document.querySelectorAll('.management-toggle')) {
 
 document.querySelector('#share-wifi').onclick = e => {
 	e.stopPropagation();
-	document.querySelector('#wifi-qr-code-line').classList.toggle('hidden');
-	document.querySelector('#wifi-qr-code-line').classList.toggle('dim');
+	document.querySelector('#wifi-share').classList.toggle('hidden');
+	document.querySelector('#wifi-share').classList.toggle('dim');
 	document.querySelector('.wifi-management.list').classList.toggle('hidden');
 };
+
+// Generate QR Code
+new QRCode(document.querySelector('.wifi-qr-code'), {
+	text: 'WIFI:T:WPA;S:Livebox-C940;P:hiEudZiR37d2nGdiz;;',
+	width: 512,
+	height: 512,
+	colorDark: '#191919',
+	colorLight: '#c6c6c6',
+	correctLevel: QRCode.CorrectLevel.M
+});

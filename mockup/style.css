@@ -198,13 +198,6 @@ main {
 			text-align: center;
 		}
 
-		&.dedicated.hidden {
-			opacity: 0;
-			pointer-events: none;
-			height: 0px;
-			margin-top: -16px;
-		}
-
 		&.list {
 			height: 375px;
 
@@ -212,6 +205,37 @@ main {
 				flex-direction: column;
 				overflow-y: auto;
 			}
+		}
+
+		&#wifi-share {
+			height: 300px;
+
+			& .group {
+				flex-direction: column;
+				align-items: center;
+				gap: 16px;
+				padding: 16px;
+
+				& .wifi-qr-code {
+					max-height: 85%;
+
+					img {
+						image-rendering: pixelated;
+						max-height: 100%;
+						margin: 0 auto;
+						background-color: #c6c6c6;
+						padding: 8px;
+						border-radius: 6px;
+					}
+				}
+			}
+		}
+
+		&.dedicated.hidden {
+			opacity: 0;
+			pointer-events: none;
+			height: 0px !important;
+			margin-top: -16px;
 		}
 	}
 }
