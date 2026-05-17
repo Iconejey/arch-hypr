@@ -144,10 +144,6 @@
 		"command": "cursorLineEnd"
 	},
 	{
-		"key": "shift+alt+up",
-		"command": "lastCursorLineSelect"
-	},
-	{
 		"key": "alt+left",
 		"command": "cursorHome",
 		"when": "textInputFocus"
@@ -252,5 +248,29 @@
 		"key": "ctrl+shift+c",
 		"command": "-workbench.action.terminal.copySelection",
 		"when": "terminalTextSelectedInFocused || terminalFocus && terminalHasBeenCreated && terminalTextSelected || terminalFocus && terminalProcessSupported && terminalTextSelected || terminalFocus && terminalTextSelected && terminalTextSelectedInFocused || terminalHasBeenCreated && terminalTextSelected && terminalTextSelectedInFocused || terminalProcessSupported && terminalTextSelected && terminalTextSelectedInFocused"
+	},
+	{
+		"key": "ctrl+alt+up",
+		"command": "editor.action.insertCursorAbove",
+		"when": "editorTextFocus"
+	},
+	{
+		"key": "ctrl+shift+up",
+		"command": "-editor.action.insertCursorAbove",
+		"when": "editorTextFocus"
+	},
+	{
+		"key": "ctrl+alt+down",
+		"command": "editor.action.insertCursorBelow",
+		"when": "editorTextFocus"
+	},
+	{
+		"key": "ctrl+shift+down",
+		"command": "-editor.action.insertCursorBelow",
+		"when": "editorTextFocus"
+	},
+	{
+		"key": "shift+alt+up",
+		"command": "editor.action.copyLinesUpAction"
 	}
 ]
