@@ -503,13 +503,13 @@
 	"workbench.layoutControl.enabled": false,
 
 	"window.menuBarVisibility": "toggle",
-
-	"breadcrumbs.enabled": false,
-	"workbench.activityBar.location": "hidden",
 	"workbench.colorTheme": "Material Theme Darker",
-	"workbench.statusBar.visible": false,
 	"terminal.integrated.fontSize": 17,
 	"terminal.integrated.lineHeight": 1.2,
 	"chat.viewSessions.orientation": "stacked",
-	"chat.tools.terminal.outputLocation": "terminal"
+	"chat.tools.terminal.outputLocation": "terminal",
+	"workbench.statusBar.visible": false,
+	"workbench.browser.openLocalhostLinks": false,
+	"breadcrumbs.enabled": false,
+	"workbench.activityBar.location": "hidden"
 }
