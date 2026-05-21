@@ -111,3 +111,8 @@ new QRCode(document.querySelector('.wifi-qr-code'), {
 	colorLight: '#c6c6c6',
 	correctLevel: QRCode.CorrectLevel.M
 });
+
+// Toggle album view
+const album_toggle = document.querySelector('.toggle-album');
+const media_container = document.querySelector('#media');
+album_toggle.onclick = () => media_container.classList.toggle('album');
