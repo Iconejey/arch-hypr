@@ -42,7 +42,6 @@ main {
 .panel {
 	background-color: rgba(25, 25, 25, 0.9);
 	backdrop-filter: blur(16px);
-	box-shadow: 0 0 30px rgba(0, 0, 0, 0.7);
 	border-radius: 16px;
 }
 
@@ -55,6 +54,7 @@ main {
 	overflow-y: auto;
 	overflow-x: hidden;
 	height: 100%;
+	filter: drop-shadow(0 0 10px rgba(0, 0, 0, 0.7));
 
 	/* Hide scrollbar */
 	scrollbar-width: none;
@@ -431,8 +431,6 @@ main {
 		overflow: hidden;
 		padding: 0;
 		background: transparent;
-		box-shadow: none;
-		filter: drop-shadow(0 0 10px rgba(0, 0, 0, 0.7));
 
 		& #wifi-views,
 		& #app-views {
@@ -445,10 +443,6 @@ main {
 			& > div {
 				width: var(--bar-width);
 				flex-shrink: 0;
-
-				& .group {
-					box-shadow: none;
-				}
 			}
 		}
 	}
