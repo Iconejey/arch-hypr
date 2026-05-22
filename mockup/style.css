@@ -173,7 +173,8 @@ main {
 					}
 				}
 
-				&:hover {
+				&:hover,
+				&.focused {
 					background-color: #242424;
 
 					&.active {
@@ -508,6 +509,42 @@ main {
 						display: flex;
 						gap: 8px;
 					}
+				}
+			}
+		}
+
+		& #app-search-view {
+			display: flex;
+			flex-direction: column;
+			gap: 16px;
+
+			& .search-box {
+				& .group {
+					align-items: center;
+					padding: 0 16px;
+					gap: 12px;
+
+					& input {
+						flex: 1;
+						background: transparent;
+						border: none;
+						outline: none;
+						color: inherit;
+						font-family: inherit;
+						font-size: 1rem;
+
+						&::placeholder {
+							color: rgba(198, 198, 198, 0.4);
+						}
+					}
+				}
+			}
+
+			& .app-list {
+				& .group button img {
+					width: 24px;
+					height: 24px;
+					object-fit: cover;
 				}
 			}
 		}
