@@ -207,17 +207,19 @@ main {
 			}
 		}
 
-		&#wifi-views-container {
+		&#wifi-views-container,
+		&#app-views-container {
 			overflow: hidden;
 			padding: 0;
 			background: transparent;
 			box-shadow: none;
 			filter: drop-shadow(0 0 10px rgba(0, 0, 0, 0.7));
 
-			& #wifi-views {
+			& #wifi-views,
+			& #app-views {
 				display: flex;
 				transition: transform 0.3s ease;
-				width: calc(var(--bar-width) * 3 + 32px);
+				width: max-content;
 				align-items: flex-start;
 				gap: 16px;
 

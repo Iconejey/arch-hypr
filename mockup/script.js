@@ -167,7 +167,9 @@ const render_battery_graph = () => {
 		});
 	}
 };
+
 render_battery_graph();
+
 // Wifi tabs behavior
 const wifi_views = document.getElementById('wifi-views');
 const wifi_views_container = document.getElementById('wifi-views-container');
@@ -195,8 +197,8 @@ for (const button of wifi_tab_buttons) {
 	});
 }
 
-// Ensure initial height is calculated after fonts/styles load
-window.addEventListener('load', update_wifi_view_height);
+// Initial height setup
+update_wifi_view_height();
 
 // Generate QR Code
 new QRCode(document.querySelector('.wifi-qr-code'), {
@@ -212,3 +214,33 @@ new QRCode(document.querySelector('.wifi-qr-code'), {
 const album_toggle = document.querySelector('.toggle-album');
 const media_container = document.querySelector('#media');
 album_toggle.onclick = () => media_container.classList.toggle('album');
+
+// App tabs behavior
+const app_views = document.getElementById('app-views');
+const app_views_container = document.getElementById('app-views-container');
+const app_tab_buttons = document.querySelectorAll('#app-tabs button');
+
+const update_app_view_height = () => {
+	// Determine the height of the currently visible view
+	const active_index = Array.from(app_tab_buttons).findIndex(b => b.classList.contains('active'));
+	if (active_index !== -1 && app_views) {
+		const active_view = app_views.children[active_index];
+		app_views_container.style.height = active_view.offsetHeight + 'px';
+
+		// Update view opacity logic
+		Array.from(app_views.children).forEach((view, i) => {
+			view.classList.toggle('inactive-view', i !== active_index);
+		});
+	}
+};
+
+for (const button of app_tab_buttons) {
+	button.addEventListener('click', () => {
+		const index = button.dataset.view;
+		app_views.style.transform = `translateX(calc(-${index} * (var(--bar-width) + 16px)))`;
+		setTimeout(update_app_view_height, 50); // Slight delay to ensure content is measured
+	});
+}
+
+// Initial height setup
+update_app_view_height();

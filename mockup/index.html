@@ -254,6 +254,40 @@
 						</button>
 					</div>
 				</div>
+
+				<!-- Views mode (Notifications, App Search) -->
+				<div class="line">
+					<div class="group panel multi-toggle" id="app-tabs">
+						<button class="active" data-view="0" title="Notifications">
+							<i>notifications</i>
+							<span>Notifications</span>
+						</button>
+
+						<button data-view="1" title="App search">
+							<i>search</i>
+							<span>App search</span>
+						</button>
+					</div>
+				</div>
+
+				<!-- Views container -->
+				<div class="line" id="app-views-container">
+					<div id="app-views">
+						<!-- Notifications -->
+						<div class="line" id="notifications-view">
+							<div class="group panel center">
+								<span>notifications</span>
+							</div>
+						</div>
+
+						<!-- App search -->
+						<div class="line inactive-view" id="app-search-view">
+							<div class="group panel center">
+								<span>app search</span>
+							</div>
+						</div>
+					</div>
+				</div>
 			</div>
 		</main>
 	</body>
