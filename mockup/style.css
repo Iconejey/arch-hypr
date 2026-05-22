@@ -54,7 +54,7 @@ main {
 	overflow-y: auto;
 	overflow-x: hidden;
 	height: 100%;
-	filter: drop-shadow(0 0 10px rgba(0, 0, 0, 0.7));
+	/* filter: drop-shadow(0 0 10px rgba(0, 0, 0, 0.7)); */
 
 	/* Hide scrollbar */
 	scrollbar-width: none;
