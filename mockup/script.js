@@ -72,12 +72,108 @@ for (const button of document.querySelectorAll('.management-toggle')) {
 	});
 }
 
+// Battery graph
+const battery_levels = [
+	{ time: 1779434467249, level: 100, charging: false },
+	{ time: 1779435367249, level: 92, charging: false },
+	{ time: 1779436267249, level: 85, charging: false },
+	{ time: 1779437167249, level: 76, charging: false },
+	{ time: 1779438067249, level: 68, charging: false },
+	{ time: 1779438967249, level: 60, charging: false },
+	{ time: 1779439867249, level: 53, charging: false },
+	{ time: 1779440767249, level: 46, charging: false },
+	{ time: 1779441667249, level: 50, charging: true },
+	{ time: 1779442567249, level: 58, charging: true },
+	{ time: 1779443467249, level: 65, charging: true },
+	{ time: 1779444367249, level: 73, charging: true }
+];
+const render_battery_graph = () => {
+	const container = document.getElementById('battery-graph');
+	if (!container) return;
+
+	const width = 300;
+	const height = 60;
+
+	const min_time = battery_levels[0].time;
+	const max_time = battery_levels[battery_levels.length - 1].time;
+
+	let svg = `<svg id="battery-svg" style="flex: 1; min-height: 0; min-width: 0;" width="100%" viewBox="-5 -5 ${width + 10} ${height + 10}" preserveAspectRatio="none">`;
+
+	// Draw horizontal guidelines for 0, 25, 50, 75, 100%
+	for (let i = 0; i <= 100; i += 25) {
+		const y = height - (i / 100) * height;
+		svg += `<line x1="0" y1="${y}" x2="${width}" y2="${y}" stroke="#c6c6c6" stroke-opacity="0.2" stroke-width="1" stroke-dasharray="3 2" />`;
+	}
+
+	for (let i = 0; i < battery_levels.length - 1; i++) {
+		const p1 = battery_levels[i];
+		const p2 = battery_levels[i + 1];
+
+		const x1 = ((p1.time - min_time) / (max_time - min_time)) * width;
+		const y1 = height - (p1.level / 100) * height;
+
+		const x2 = ((p2.time - min_time) / (max_time - min_time)) * width;
+		const y2 = height - (p2.level / 100) * height;
+
+		// Color logic: green (#c3e88d) when charging, blue (#82aaff) when not
+		const color = p2.charging ? '#c3e88d' : '#82aaff';
+
+		svg += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="4" stroke-linecap="round" />`;
+	}
+
+	svg += `<circle id="hover-circle" r="4" fill="white" style="opacity: 0; pointer-events: none;" />`;
+	svg += `</svg>`;
+	container.innerHTML = svg + '<span class="small center-text" id="hover-info" style="pointer-events: none;"></span>';
+
+	const svg_el = document.getElementById('battery-svg');
+	const hover_circle = document.getElementById('hover-circle');
+	const hover_info = document.getElementById('hover-info');
+	const battery_line = document.getElementById('battery-graph-line');
+
+	if (svg_el && hover_circle && hover_info && battery_line) {
+		svg_el.addEventListener('mousemove', e => {
+			const rect = svg_el.getBoundingClientRect();
+			const x_ratio = (e.clientX - rect.left) / rect.width;
+			const view_box_x = x_ratio * (width + 10) - 5;
+			const time_hovered = min_time + (view_box_x / width) * (max_time - min_time);
+
+			let nearest = battery_levels[0];
+			let min_diff = Infinity;
+			for (const p of battery_levels) {
+				const diff = Math.abs(p.time - time_hovered);
+				if (diff < min_diff) {
+					min_diff = diff;
+					nearest = p;
+				}
+			}
+
+			const x = ((nearest.time - min_time) / (max_time - min_time)) * width;
+			const y = height - (nearest.level / 100) * height;
+
+			hover_circle.setAttribute('cx', x);
+			hover_circle.setAttribute('cy', y);
+			hover_circle.style.opacity = '1';
+
+			const d = new Date(nearest.time);
+			const time_str = d.getHours().toString().padStart(2, '0') + ':' + d.getMinutes().toString().padStart(2, '0');
+
+			hover_info.textContent = `${time_str} - ${nearest.level}%`;
+			battery_line.classList.add('hovered');
+		});
+
+		svg_el.addEventListener('mouseleave', () => {
+			hover_circle.style.opacity = '0';
+			battery_line.classList.remove('hovered');
+		});
+	}
+};
+render_battery_graph();
 // Wifi tabs behavior
 const wifi_views = document.getElementById('wifi-views');
 const wifi_views_container = document.getElementById('wifi-views-container');
 const wifi_tab_buttons = document.querySelectorAll('#wifi-tabs button');
 
-const updateWifiViewHeight = () => {
+const update_wifi_view_height = () => {
 	// Determine the height of the currently visible view
 	const active_index = Array.from(wifi_tab_buttons).findIndex(b => b.classList.contains('active'));
 	if (active_index !== -1 && wifi_views) {
@@ -95,12 +191,12 @@ for (const button of wifi_tab_buttons) {
 	button.addEventListener('click', () => {
 		const index = button.dataset.view;
 		wifi_views.style.transform = `translateX(calc(-${index} * (var(--bar-width) + 16px)))`;
-		setTimeout(updateWifiViewHeight, 50); // Slight delay to ensure content is measured
+		setTimeout(update_wifi_view_height, 50); // Slight delay to ensure content is measured
 	});
 }
 
 // Ensure initial height is calculated after fonts/styles load
-window.addEventListener('load', updateWifiViewHeight);
+window.addEventListener('load', update_wifi_view_height);
 
 // Generate QR Code
 new QRCode(document.querySelector('.wifi-qr-code'), {
