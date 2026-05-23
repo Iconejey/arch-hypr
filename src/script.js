@@ -84,23 +84,25 @@ for (const button of $$('.management-toggle')) {
 }
 
 // Battery graph
-const battery_levels = [
-	{ time: 1779434467249, level: 100, charging: false },
-	{ time: 1779435367249, level: 92, charging: false },
-	{ time: 1779436267249, level: 85, charging: false },
-	{ time: 1779437167249, level: 76, charging: false },
-	{ time: 1779438067249, level: 68, charging: false },
-	{ time: 1779438967249, level: 60, charging: false },
-	{ time: 1779439867249, level: 53, charging: false },
-	{ time: 1779440767249, level: 46, charging: false },
-	{ time: 1779441667249, level: 50, charging: true },
-	{ time: 1779442567249, level: 58, charging: true },
-	{ time: 1779443467249, level: 65, charging: true },
-	{ time: 1779444367249, level: 73, charging: true }
-];
+const fs = require('fs');
+const path = require('path');
+
 const render_battery_graph = () => {
+	let battery_levels = [];
+	try {
+		const logFile = path.join(__dirname, '..', 'battery-log.json');
+		battery_levels = JSON.parse(fs.readFileSync(logFile, 'utf8'));
+	} catch (e) {
+		console.error('Could not load battery stats', e);
+	}
+
 	const container = $('#battery-graph');
 	if (!container) return;
+
+	if (battery_levels.length < 2) {
+		container.innerHTML = '<span class="small center-text" style="opacity: 0.5;">Not enough data yet</span>';
+		return;
+	}
 
 	const width = 300;
 	const height = 60;
@@ -128,8 +130,9 @@ const render_battery_graph = () => {
 
 		// Color logic: green (#c3e88d) when charging, blue (#82aaff) when not
 		const color = p2.charging ? '#c3e88d' : '#82aaff';
+		const dash = p2.time - p1.time > 11 * 60 * 1000 ? 'stroke-dasharray="4"' : '';
 
-		svg += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="4" stroke-linecap="round" />`;
+		svg += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="4" stroke-linecap="round" ${dash} />`;
 	}
 
 	svg += `<circle id="hover-circle" r="4" fill="white" style="opacity: 0; pointer-events: none;" />`;
@@ -272,3 +275,85 @@ document.onkeydown = e => {
 $('#btn-shutdown').onclick = () => exec('systemctl poweroff -i');
 $('#btn-sleep').onclick = () => exec('systemctl suspend');
 $('#btn-restart').onclick = () => exec('systemctl reboot');
+
+// Battery Status update
+const updateBatteryDetails = () => {
+	exec('acpi -b', (err, stdout) => {
+		if (err || !stdout) return;
+
+		const match = stdout.match(/Battery 0: ([a-zA-Z\s]+), (\d+)%(?:, ([\d:]+))?/);
+		if (!match) return;
+
+		const batteryBtn = document.querySelector('button[data-target="battery-management"]');
+		if (!batteryBtn) return;
+
+		const spans = batteryBtn.querySelectorAll('span');
+		const percentSpan = spans[0];
+		const timeSpan = spans[1];
+		const icon = batteryBtn.querySelector('i');
+
+		const status = match[1].trim();
+		const percent = parseInt(match[2]);
+		const timeRaw = match[3];
+
+		if (percentSpan) percentSpan.textContent = `${percent}%`;
+
+		if (timeRaw && status !== 'Unknown') {
+			const parts = timeRaw.split(':');
+			if (timeSpan) {
+				timeSpan.textContent = `${parseInt(parts[0])} h ${parts[1]} min`;
+				timeSpan.style.display = '';
+			}
+		} else {
+			if (timeSpan) timeSpan.style.display = 'none';
+		}
+
+		// Set the charging icon
+		if (status === 'Charging') {
+			icon.textContent = percent >= 50 ? 'battery_android_frame_bolt' : 'battery_android_bolt';
+		} else {
+			if (percent >= 98) icon.textContent = 'battery_android_frame_full';
+			else if (percent >= 90) icon.textContent = 'battery_android_frame_6';
+			else if (percent >= 75) icon.textContent = 'battery_android_frame_5';
+			else if (percent >= 60) icon.textContent = 'battery_android_frame_4';
+			else if (percent >= 45) icon.textContent = 'battery_android_frame_3';
+			else if (percent >= 30) icon.textContent = 'battery_android_frame_2';
+			else if (percent >= 15) icon.textContent = 'battery_android_frame_1';
+			else icon.textContent = 'battery_android_alert';
+		}
+	});
+};
+
+updateBatteryDetails();
+setInterval(updateBatteryDetails, 60000); // refresh every minute
+
+// Power Profiles (Battery Modes)
+const batModeContainer = document.querySelector('.battery-management.dedicated .multi-toggle');
+if (batModeContainer) {
+	const batModeBtns = batModeContainer.querySelectorAll('button');
+	const profiles = ['power-saver', 'balanced', 'performance'];
+
+	const updateBatteryModeSelection = () => {
+		exec('powerprofilesctl get', (err, stdout) => {
+			if (err || !stdout) return;
+			const current = stdout.trim();
+			const idx = profiles.indexOf(current);
+			if (idx !== -1) {
+				batModeBtns.forEach((btn, i) => {
+					if (i === idx) btn.classList.add('active');
+					else btn.classList.remove('active');
+				});
+			}
+		});
+	};
+
+	updateBatteryModeSelection();
+
+	batModeBtns.forEach((btn, i) => {
+		btn.addEventListener('click', () => {
+			exec(`powerprofilesctl set ${profiles[i]}`, () => {
+				updateBatteryModeSelection();
+			});
+		});
+	});
+}
