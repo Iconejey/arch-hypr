@@ -256,6 +256,16 @@ for (const button of app_tab_buttons) {
 // Initial height setup
 update_app_view_height();
 
+// Escape key to close menu
+document.onkeydown = e => {
+	if (e.key === 'Escape' && toggled_class) {
+		for (const dimmed of $$('.dim')) dimmed.classList.remove('dim');
+		for (const dedicated of $$('.line.dedicated')) dedicated.classList.add('hidden');
+		for (const menu_only of $$('.menu-only')) menu_only.classList.add('hidden');
+		toggled_class = null;
+	}
+};
+
 // --- System Integration ---
 
 // Power actions
