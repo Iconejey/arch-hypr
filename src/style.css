@@ -11,6 +11,7 @@
 }
 
 body {
+	pointer-events: none;
 	font-family: system-ui;
 	min-height: 100vh;
 }
@@ -31,6 +32,7 @@ i {
 }
 
 main {
+	pointer-events: none;
 	/* Imitate window config */
 	position: fixed;
 	top: 0;
@@ -48,6 +50,7 @@ main {
 }
 
 .bar {
+	pointer-events: auto;
 	--bar-width: 350px;
 	width: var(--bar-width);
 	display: flex;
@@ -545,4 +548,9 @@ main {
 	opacity: 0.7;
 	filter: brightness(0.5);
 	pointer-events: none;
+}
+@keyframes startupHide {
+        0% { opacity: 0; }
+        99% { opacity: 0; }
+        100% { opacity: 1; }
 }

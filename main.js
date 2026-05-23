@@ -6,12 +6,13 @@ function createWindow() {
 	const panelWidth = 390; // no spacing
 	const win = new BrowserWindow({
 		title: 'arch-hypr-panel',
-		x: 0, // Start totally off-screen
+		x: -panelWidth, // Start totally off-screen
 		y: 0,
-		width: panelWidth,
+		width: panelWidth + 1,
 		height: height,
 		frame: false,
 		transparent: true,
+		hasShadow: false,
 		resizable: true,
 		webPreferences: {
 			nodeIntegration: true,

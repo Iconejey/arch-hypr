@@ -32,7 +32,18 @@ if [ "$1" == "kill" ]; then
         cd ~/dev/arch-hypr
         nohup electron . >/dev/null 2>&1 &
         disown
-        hyprctl --batch "$(get_reserved_commands 390)" >/dev/null
+        
+        # Wait for window to map, then move it and set reserved space
+        for i in {1..30}; do
+            sleep 0.1
+            if hyprctl clients -j | jq -e '.[] | select(.title=="arch-hypr-panel")' >/dev/null; then
+                break
+            fi
+        done
+        hyprctl keyword animations:enabled 0 >/dev/null
+        hyprctl --batch "dispatch movewindowpixel exact 0 0,title:^(arch-hypr-panel)$ ; $(get_reserved_commands 390)" >/dev/null
+        sleep 0.05
+        hyprctl keyword animations:enabled 1 >/dev/null
     fi
     exit 0
 fi
@@ -42,7 +53,18 @@ if [ -z "$PROCESS_EXISTS" ]; then
     cd ~/dev/arch-hypr
     nohup electron . >/dev/null 2>&1 &
     disown
-    hyprctl --batch "$(get_reserved_commands 390)" >/dev/null
+    
+    # Wait for window to map, then move it and set reserved space
+    for i in {1..30}; do
+        sleep 0.1
+        if hyprctl clients -j | jq -e '.[] | select(.title=="arch-hypr-panel")' >/dev/null; then
+            break
+        fi
+    done
+    hyprctl keyword animations:enabled 0 >/dev/null
+    hyprctl --batch "dispatch movewindowpixel exact 0 0,title:^(arch-hypr-panel)$ ; $(get_reserved_commands 390)" >/dev/null
+    sleep 0.05
+    hyprctl keyword animations:enabled 1 >/dev/null
     exit 0
 fi
 
