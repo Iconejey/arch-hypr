@@ -399,20 +399,156 @@ if (batModeContainer) {
 const updateClock = () => {
 	const powerBtn = document.querySelector('button[data-target="power-management"]');
 	if (!powerBtn) return;
-	
+
 	const timeSpan = powerBtn.querySelector('span.bold');
 	const dateSpan = powerBtn.querySelector('span.small');
-	
+
 	const now = new Date();
 	if (timeSpan) {
 		timeSpan.textContent = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
 	}
-	
+
 	if (dateSpan) {
-		const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+		const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 		dateSpan.textContent = `${monthNames[now.getMonth()]} ${now.getDate()}`;
 	}
 };
 
 updateClock();
 setInterval(updateClock, 1000); // refresh every second for minimal delay when minute changes
+
+// Wifi Status update
+const updateWifiStatus = () => {
+	const wifiBtn = document.querySelector('button[data-target="wifi-management"]');
+	if (!wifiBtn) return;
+
+	const titleSpan = wifiBtn.querySelector('span');
+	const icon = wifiBtn.querySelector('i');
+
+	// Find the connected station
+	exec("iwctl station list | grep ' connected'", (err, stdout) => {
+		if (err || !stdout.trim()) {
+			// Not connected
+			wifiBtn.classList.remove('active');
+			if (titleSpan) titleSpan.textContent = 'Disconnected';
+			if (icon) icon.textContent = 'signal_wifi_off';
+			wifiBtn.title = 'Wifi network (disconnected)';
+			return;
+		}
+
+		const device = stdout.trim().split(/\s+/)[0];
+		if (!device) return;
+
+		// Get the connected SSID
+		exec(`iwctl station ${device} show`, (err2, stdout2) => {
+			if (err2 || !stdout2) return;
+
+			const networkMatch = stdout2.match(/Connected network\s+(.*)/);
+			const rssiMatch = stdout2.match(/RSSI\s+(-?\d+)\s+dBm/);
+
+			if (networkMatch) {
+				const ssid = networkMatch[1].trim();
+
+				wifiBtn.classList.add('active');
+				if (titleSpan) titleSpan.textContent = ssid;
+				wifiBtn.title = `Wifi network (connected to ${ssid})`;
+
+				// Optional: Set icon based on RSSI (signal strength)
+				if (icon) {
+					if (rssiMatch) {
+						const rssi = parseInt(rssiMatch[1]);
+						if (rssi > -60) icon.textContent = 'network_wifi';
+						else if (rssi > -70) icon.textContent = 'network_wifi_3_bar';
+						else if (rssi > -80) icon.textContent = 'network_wifi_2_bar';
+						else icon.textContent = 'network_wifi_1_bar';
+					} else {
+						icon.textContent = 'network_wifi';
+					}
+				}
+			} else {
+				wifiBtn.classList.remove('active');
+				if (titleSpan) titleSpan.textContent = 'Disconnected';
+				if (icon) icon.textContent = 'signal_wifi_off';
+				wifiBtn.title = 'Wifi network (disconnected)';
+			}
+		});
+	});
+};
+
+updateWifiStatus();
+setInterval(updateWifiStatus, 5000); // refresh every 5 seconds
+
+// Wifi List update
+const updateWifiList = () => {
+	const wifiListContainer = document.querySelector('#wifi-list .group');
+	if (!wifiListContainer) return;
+
+	exec('iwctl station list', (err, stdout) => {
+		if (err || !stdout) return;
+		const pure = stdout.replace(/\x1b\[[0-9;]*m/g, '');
+		const match = pure.match(/^\s*([a-zA-Z0-9_]+)\s+(connected|disconnected|connecting)/m);
+		if (!match) return;
+
+		const device = match[1];
+
+		exec(`iwctl station ${device} get-networks`, (err2, stdout2) => {
+			if (err2 || !stdout2) return;
+			const lines = stdout2.split('\n').map(l => l.replace(/\x1b\[[0-9;]*m/g, ''));
+			const hl = lines.find(l => l.includes('Network name'));
+			if (!hl) return;
+
+			const ns = hl.indexOf('Network name');
+			const ss = hl.indexOf('Security');
+			const sigS = hl.indexOf('Signal');
+			const hi = lines.indexOf(hl);
+
+			let html = '';
+
+			for (let i = hi + 2; i < lines.length; i++) {
+				if (!lines[i].trim() || lines[i].includes('---')) continue;
+
+				const name = lines[i].substring(ns, ss).trim();
+				if (!name) continue;
+
+				const connected = lines[i].substring(0, ns).includes('>');
+				// If it's the currently connected network, don't show it in the list
+				if (connected) continue;
+
+				const sig = lines[i].substring(sigS).trim();
+
+				let icon = 'network_wifi_1_bar';
+				const asterisks = (sig.match(/\*/g) || []).length;
+				if (asterisks === 4) icon = 'signal_wifi_4_bar';
+				else if (asterisks === 3) icon = 'network_wifi_3_bar';
+				else if (asterisks === 2) icon = 'network_wifi_2_bar';
+
+				html += `
+					<button title="${name}">
+						<i>${icon}</i>
+						<span>${name}</span>
+					</button>
+				`;
+			}
+
+			if (html) {
+				wifiListContainer.innerHTML = html;
+
+				// Handle connect clicks
+				const buttons = wifiListContainer.querySelectorAll('button');
+				buttons.forEach(btn => {
+					btn.onclick = () => {
+						const ssid = btn.title;
+						// Just try to connect - standard iwctl implementation for known networks
+						exec(`iwctl station ${device} connect "${ssid}"`, () => {
+							updateWifiList();
+							updateWifiStatus();
+						});
+					};
+				});
+			}
+		});
+	});
+};
+
+updateWifiList();
+setInterval(updateWifiList, 15000); // refresh network list every 15 seconds

@@ -210,7 +210,7 @@ main {
 		}
 
 		&.list {
-			height: 375px;
+			max-height: 375px;
 
 			& .group {
 				flex-direction: column;
