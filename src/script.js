@@ -294,14 +294,51 @@ const updateBatteryDetails = () => {
 
 		const status = match[1].trim();
 		const percent = parseInt(match[2]);
-		const timeRaw = match[3];
+		// Ignore acpi's timeRaw, make our own estimation
+		let customTimeEstimateStr = null;
+
+		try {
+			const logFile = path.join(__dirname, '..', 'battery-log.json');
+			if (fs.existsSync(logFile)) {
+				const logs = JSON.parse(fs.readFileSync(logFile, 'utf8'));
+				if (logs.length >= 3) {
+					const recent = logs.slice(-3);
+					const p1 = recent[0];
+					const p2 = recent[recent.length - 1];
+
+					if (p1.charging === p2.charging && status === (p2.charging ? 'Charging' : 'Discharging')) {
+						const deltaLvl = p2.level - p1.level;
+						const deltaTimeMs = p2.time - p1.time;
+
+						if (deltaTimeMs > 0 && deltaLvl !== 0) {
+							let msRemaining = 0;
+							if (!p2.charging && deltaLvl < 0) {
+								const msPerPercent = deltaTimeMs / Math.abs(deltaLvl);
+								msRemaining = msPerPercent * percent;
+							} else if (p2.charging && deltaLvl > 0) {
+								const msPerPercent = deltaTimeMs / deltaLvl;
+								msRemaining = msPerPercent * (100 - percent);
+							}
+
+							if (msRemaining > 0) {
+								const totalMinutes = Math.round(msRemaining / 60000);
+								const hrs = Math.floor(totalMinutes / 60);
+								const mins = totalMinutes % 60;
+								customTimeEstimateStr = `${hrs} h ${mins.toString().padStart(2, '0')} min`;
+							}
+						}
+					}
+				}
+			}
+		} catch (e) {
+			console.log('Error calculating custom battery estimate:', e);
+		}
 
 		if (percentSpan) percentSpan.textContent = `${percent}%`;
 
-		if (timeRaw && status !== 'Unknown') {
-			const parts = timeRaw.split(':');
+		if (customTimeEstimateStr) {
 			if (timeSpan) {
-				timeSpan.textContent = `${parseInt(parts[0])} h ${parts[1]} min`;
+				timeSpan.textContent = customTimeEstimateStr;
 				timeSpan.style.display = '';
 			}
 		} else {
