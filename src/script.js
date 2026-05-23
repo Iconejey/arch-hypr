@@ -394,3 +394,25 @@ if (batModeContainer) {
 		});
 	});
 }
+
+// Clock and Date update
+const updateClock = () => {
+	const powerBtn = document.querySelector('button[data-target="power-management"]');
+	if (!powerBtn) return;
+	
+	const timeSpan = powerBtn.querySelector('span.bold');
+	const dateSpan = powerBtn.querySelector('span.small');
+	
+	const now = new Date();
+	if (timeSpan) {
+		timeSpan.textContent = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+	}
+	
+	if (dateSpan) {
+		const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+		dateSpan.textContent = `${monthNames[now.getMonth()]} ${now.getDate()}`;
+	}
+};
+
+updateClock();
+setInterval(updateClock, 1000); // refresh every second for minimal delay when minute changes
