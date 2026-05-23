@@ -5,6 +5,7 @@ CYAN='\033[0;36m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
+BANNER='\033[30;43m' # Black fg, Yellow bg
 NC='\033[0m' # No Color
 
 # Ensure running as normal user, not root
@@ -19,9 +20,9 @@ sudo -v
 # Keep sudo credentials alive in the background
 while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
 
-echo -e "\n${CYAN}========================================${NC}"
-echo -e "${CYAN}Starting Installation...${NC}"
-echo -e "${CYAN}========================================${NC}\n"
+echo -e "\n${BANNER}                            ${NC}"
+echo -e "${BANNER}  Starting Installation...  ${NC}"
+echo -e "${BANNER}                            ${NC}\n"
 
 declare -a all_pkgs_status
 declare -a uninstalled_pkgs
@@ -60,7 +61,8 @@ echo -e "${CYAN}-----------------------${NC}\n"
 if [ ${#uninstalled_pkgs[@]} -eq 0 ]; then
     echo -e "${GREEN}All software.csv packages are already installed!${NC}"
 else
-    read -p "Do you want to continue with the installation of the missing packages? (y/N) " confirm
+    echo -en "\n${YELLOW}Do you want to continue with the installation of the missing packages? (y/N) ${NC}"
+    read confirm
     if [[ ! $confirm =~ ^[Yy]$ ]]; then
         echo -e "${RED}Installation aborted by user.${NC}"
         exit 1
@@ -102,9 +104,9 @@ else
     done
 fi
 
-echo -e "\n${CYAN}========================================${NC}"
-echo -e "${CYAN}Applying manual configurations...${NC}"
-echo -e "${CYAN}========================================${NC}"
+echo -e "\n${BANNER}                                     ${NC}"
+echo -e "${BANNER}  Applying manual configurations...  ${NC}"
+echo -e "${BANNER}                                     ${NC}\n"
 
 echo -e "${YELLOW}Setting up iwd (wifi)...${NC}"
 sudo mkdir -p /etc/iwd
@@ -117,9 +119,9 @@ sudo systemctl restart iwd 2>/dev/null || true
 echo -e "${YELLOW}Changing default shell to ZSH...${NC}"
 sudo chsh -s $(which zsh) "$USER"
 
-echo -e "\n${CYAN}========================================${NC}"
-echo -e "${CYAN}Running Configuration Linker...${NC}"
-echo -e "${CYAN}========================================${NC}"
+echo -e "\n${BANNER}                                   ${NC}"
+echo -e "${BANNER}  Running Configuration Linker...  ${NC}"
+echo -e "${BANNER}                                   ${NC}\n"
 # Now node is installed along with the rest, we run link.js
 node link.js
 
@@ -138,21 +140,21 @@ done
 xdg-settings set default-web-browser google-chrome.desktop 2>/dev/null || true
 update-desktop-database ~/.local/share/applications 2>/dev/null || true
 
-echo -e "\n${CYAN}========================================${NC}"
-read -p "Do you want to set up Google Drive sync now? (y/N) " run_drive
+echo -en "\n${YELLOW}Do you want to set up Google Drive sync now? (y/N) ${NC}"
+read run_drive
 if [[ $run_drive =~ ^[Yy]$ ]]; then
     echo -e "${CYAN}Setting up Google Drive...${NC}"
     npm run drive-setup
 fi
 
-echo -e "\n${CYAN}========================================${NC}"
-read -p "Do you want to scan a WiFi QR code to connect to a network now? (y/N) " run_qr
+echo -en "\n${YELLOW}Do you want to scan a WiFi QR code to connect to a network now? (y/N) ${NC}"
+read run_qr
 if [[ $run_qr =~ ^[Yy]$ ]]; then
     qr-wifi
 fi
 
-echo -e "\n${CYAN}========================================${NC}"
-read -p "Do you want to enroll your fingerprint for biometry authentication now? (y/N) " run_fprint
+echo -en "\n${YELLOW}Do you want to enroll your fingerprint for biometry authentication now? (y/N) ${NC}"
+read run_fprint
 if [[ $run_fprint =~ ^[Yy]$ ]]; then
     echo -e "${YELLOW}Starting fingerprint service...${NC}"
     # fprintd is DBus activated, so just starting it or interacting with it is enough
@@ -171,9 +173,9 @@ if [[ $run_fprint =~ ^[Yy]$ ]]; then
     fi
 fi
 
-echo -e "\n${CYAN}========================================${NC}"
-echo -e "${GREEN}Installation Complete!${NC}"
-echo -e "${CYAN}========================================${NC}\n"
+echo -e "\n${BANNER}                          ${NC}"
+echo -e "${BANNER}  Installation Complete!  ${NC}"
+echo -e "${BANNER}                          ${NC}\n"
 
 # Display system info
 neofetch
