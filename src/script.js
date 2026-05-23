@@ -244,3 +244,18 @@ for (const button of app_tab_buttons) {
 
 // Initial height setup
 update_app_view_height();
+
+// --- System Integration ---
+const { exec } = require('child_process');
+
+document.getElementById('btn-shutdown').addEventListener('click', () => {
+	exec('systemctl poweroff -i');
+});
+
+document.getElementById('btn-sleep').addEventListener('click', () => {
+	exec('systemctl suspend');
+});
+
+document.getElementById('btn-restart').addEventListener('click', () => {
+	exec('systemctl reboot');
+});
