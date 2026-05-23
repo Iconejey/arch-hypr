@@ -1,5 +1,16 @@
+const { exec } = require('child_process');
+
+// Utils
+function $(selector) {
+	return document.querySelector(selector);
+}
+
+function $$(selector) {
+	return document.querySelectorAll(selector);
+}
+
 // Multi-toggle
-for (const toggle of document.querySelectorAll('.multi-toggle')) {
+for (const toggle of $$('.multi-toggle')) {
 	const buttons = toggle.querySelectorAll('button');
 
 	for (const button of buttons) {
@@ -10,35 +21,35 @@ for (const toggle of document.querySelectorAll('.multi-toggle')) {
 }
 
 // Sliders
-for (const slider of document.querySelectorAll('.slider')) {
+for (const slider of $$('.slider')) {
 	// Initialize the background gradient based on the starting value
 	slider.style.setProperty('--val', `${slider.value}%`);
 
 	// Update gradient on drag
-	slider.addEventListener('input', e => {
+	slider.onclick = e => {
 		e.target.style.setProperty('--val', `${e.target.value}%`);
 
 		// Optional: Update the text next to the slider for the mockup
 		const value_text = e.target.parentElement.querySelector('span.label');
 		if (value_text) value_text.textContent = `${e.target.value}%`;
-	});
+	};
 }
 
 // Management toggle
 let toggled_class = null;
 
-for (const button of document.querySelectorAll('.management-toggle')) {
-	button.addEventListener('click', () => {
+for (const button of $$('.management-toggle')) {
+	button.onclick = () => {
 		const target_class = button.dataset.target;
 
 		// Un-dim all
-		for (const dimmed of document.querySelectorAll('.dim')) dimmed.classList.remove('dim');
+		for (const dimmed of $$('.dim')) dimmed.classList.remove('dim');
 
 		// Hide all dedicated lines
-		for (const dedicated of document.querySelectorAll('.line.dedicated')) dedicated.classList.add('hidden');
+		for (const dedicated of $$('.line.dedicated')) dedicated.classList.add('hidden');
 
 		// Hide all menu-only labels
-		for (const menu_only of document.querySelectorAll('.menu-only')) menu_only.classList.add('hidden');
+		for (const menu_only of $$('.menu-only')) menu_only.classList.add('hidden');
 
 		// If already toggled, just reset
 		if (target_class === toggled_class) {
@@ -49,7 +60,7 @@ for (const button of document.querySelectorAll('.management-toggle')) {
 		// Set toggled class
 		toggled_class = target_class;
 
-		for (const line of document.querySelectorAll('.line')) {
+		for (const line of $$('.line')) {
 			// Dim non-target lines
 			if (!line.classList.contains(target_class)) {
 				line.classList.add('dim');
@@ -69,7 +80,7 @@ for (const button of document.querySelectorAll('.management-toggle')) {
 				}
 			}
 		}
-	});
+	};
 }
 
 // Battery graph
@@ -88,7 +99,7 @@ const battery_levels = [
 	{ time: 1779444367249, level: 73, charging: true }
 ];
 const render_battery_graph = () => {
-	const container = document.getElementById('battery-graph');
+	const container = $('#battery-graph');
 	if (!container) return;
 
 	const width = 300;
@@ -125,13 +136,13 @@ const render_battery_graph = () => {
 	svg += `</svg>`;
 	container.innerHTML = svg + '<span class="small center-text" id="hover-info" style="pointer-events: none;"></span>';
 
-	const svg_el = document.getElementById('battery-svg');
-	const hover_circle = document.getElementById('hover-circle');
-	const hover_info = document.getElementById('hover-info');
-	const battery_line = document.getElementById('battery-graph-line');
+	const svg_el = $('#battery-svg');
+	const hover_circle = $('#hover-circle');
+	const hover_info = $('#hover-info');
+	const battery_line = $('#battery-graph-line');
 
 	if (svg_el && hover_circle && hover_info && battery_line) {
-		svg_el.addEventListener('mousemove', e => {
+		svg_el.onmousemove = e => {
 			const rect = svg_el.getBoundingClientRect();
 			const x_ratio = (e.clientX - rect.left) / rect.width;
 			const view_box_x = x_ratio * (width + 10) - 5;
@@ -159,21 +170,21 @@ const render_battery_graph = () => {
 
 			hover_info.textContent = `${time_str} - ${nearest.level}%`;
 			battery_line.classList.add('hovered');
-		});
+		};
 
-		svg_el.addEventListener('mouseleave', () => {
+		svg_el.onmouseleave = () => {
 			hover_circle.style.opacity = '0';
 			battery_line.classList.remove('hovered');
-		});
+		};
 	}
 };
 
 render_battery_graph();
 
 // Wifi tabs behavior
-const wifi_views = document.getElementById('wifi-views');
-const wifi_views_container = document.getElementById('wifi-views-container');
-const wifi_tab_buttons = document.querySelectorAll('#wifi-tabs button');
+const wifi_views = $('#wifi-views');
+const wifi_views_container = $('#wifi-views-container');
+const wifi_tab_buttons = $$('#wifi-tabs button');
 
 const update_wifi_view_height = () => {
 	// Determine the height of the currently visible view
@@ -190,18 +201,18 @@ const update_wifi_view_height = () => {
 };
 
 for (const button of wifi_tab_buttons) {
-	button.addEventListener('click', () => {
+	button.onclick = () => {
 		const index = button.dataset.view;
 		wifi_views.style.transform = `translateX(calc(-${index} * (var(--bar-width) + 16px)))`;
 		setTimeout(update_wifi_view_height, 50); // Slight delay to ensure content is measured
-	});
+	};
 }
 
 // Initial height setup
 update_wifi_view_height();
 
 // Generate QR Code
-new QRCode(document.querySelector('.wifi-qr-code'), {
+new QRCode($('.wifi-qr-code'), {
 	text: 'WIFI:T:WPA;S:Livebox-C940;P:hiEudZiR37d2nGdiz;;',
 	width: 512,
 	height: 512,
@@ -211,14 +222,14 @@ new QRCode(document.querySelector('.wifi-qr-code'), {
 });
 
 // Toggle album view
-const album_toggle = document.querySelector('.toggle-album');
-const media_container = document.querySelector('#media');
+const album_toggle = $('.toggle-album');
+const media_container = $('#media');
 album_toggle.onclick = () => media_container.classList.toggle('album');
 
 // App tabs behavior
-const app_views = document.getElementById('app-views');
-const app_views_container = document.getElementById('app-views-container');
-const app_tab_buttons = document.querySelectorAll('#app-tabs button');
+const app_views = $('#app-views');
+const app_views_container = $('#app-views-container');
+const app_tab_buttons = $$('#app-tabs button');
 
 const update_app_view_height = () => {
 	// Determine the height of the currently visible view
@@ -235,27 +246,19 @@ const update_app_view_height = () => {
 };
 
 for (const button of app_tab_buttons) {
-	button.addEventListener('click', () => {
+	button.onclick = () => {
 		const index = button.dataset.view;
 		app_views.style.transform = `translateX(calc(-${index} * (var(--bar-width) + 16px)))`;
 		setTimeout(update_app_view_height, 50); // Slight delay to ensure content is measured
-	});
+	};
 }
 
 // Initial height setup
 update_app_view_height();
 
 // --- System Integration ---
-const { exec } = require('child_process');
 
-document.getElementById('btn-shutdown').addEventListener('click', () => {
-	exec('systemctl poweroff -i');
-});
-
-document.getElementById('btn-sleep').addEventListener('click', () => {
-	exec('systemctl suspend');
-});
-
-document.getElementById('btn-restart').addEventListener('click', () => {
-	exec('systemctl reboot');
-});
+// Power actions
+$('#btn-shutdown').onclick = () => exec('systemctl poweroff -i');
+$('#btn-sleep').onclick = () => exec('systemctl suspend');
+$('#btn-restart').onclick = () => exec('systemctl reboot');
