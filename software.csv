@@ -9,7 +9,8 @@ hyprland,yay -S hyprland
 hyprpicker,yay -S hyprpicker
 hyprshot,yay -S hyprshot
 hyprshutdown,yay -S hyprshutdown
-ttf-ms-fonts,yay -S ttf-ms-fonts
+tty-ms-fonts,yay -S ttf-ms-fonts
+ttf-material-symbols-variable,yay -S ttf-material-symbols-variable
 brightnessctl,yay -S brightnessctl
 iwd,yay -S iwd
 google-chrome,yay -S google-chrome
@@ -34,16 +35,4 @@ seahorse,yay -S seahorse
 libfprint-tod,yay -S libfprint-tod
 libfprint-2-tod1-xps9300-bin,yay -S libfprint-2-tod1-xps9300-bin
 fprintd,yay -S fprintd
-libastal-git,yay -S libastal-git
-aylurs-gtk-shell-git,yay -S aylurs-gtk-shell-git
-libastal-gjs-git,yay -S libastal-gjs-git
-libastal-io-git,yay -S libastal-io-git
-libastal-hyprland-git,yay -S libastal-hyprland-git
-libastal-network-git,yay -S libastal-network-git
-libastal-wireplumber-git,yay -S libastal-wireplumber-git
-libastal-battery-git,yay -S libastal-battery-git
-libastal-tray-git,yay -S libastal-tray-git
-libastal-notifd-git,yay -S libastal-notifd-git
-libastal-mpris-git,yay -S libastal-mpris-git
-libastal-apps-git,yay -S libastal-apps-git
-libastal-bluetooth-git,yay -S libastal-bluetooth-git
+electron,yay -S electron

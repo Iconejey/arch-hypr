@@ -123,6 +123,8 @@ echo -e "\n${BANNER}                                   ${NC}"
 echo -e "${BANNER}  Running Configuration Linker...  ${NC}"
 echo -e "${BANNER}                                   ${NC}\n"
 # Now node is installed along with the rest, we run link.js
+echo -e "${YELLOW}Installing npm packages (like electron) for the workspace...${NC}"
+npm install
 node link.js
 
 echo -e "\n${YELLOW}Making Chrome smart globally for Hyprland...${NC}"

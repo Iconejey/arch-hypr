@@ -13,10 +13,13 @@
 	"license": "ISC",
 	"author": "Nicolas Gouwy",
 	"type": "commonjs",
-	"main": "link.js",
+	"main": "main.js",
 	"scripts": {
+		"start": "electron . --ozone-platform-hint=auto --disable-gpu",
 		"link": "node link.js",
-		"drive-setup": "node drive-setup.js",
-		"astal": "mkdir -p ~/.config/astal/node_modules && ln -sfn /usr/share/astal/gjs ~/.config/astal/node_modules/astal && ags run --gtk 3 ~/.config/astal/app.js"
+		"drive-setup": "node drive-setup.js"
+	},
+	"devDependencies": {
+		"sass": "^1.100.0"
 	}
 }
