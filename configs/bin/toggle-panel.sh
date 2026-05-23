@@ -35,6 +35,7 @@ if [ "$1" == "kill" ]; then
         cd ~/dev/arch-hypr
         nohup electron . >/dev/null 2>&1 &
         disown
+        set_reserved 390
     fi
     exit 0
 fi
@@ -44,6 +45,7 @@ if [ -z "$PROCESS_EXISTS" ]; then
     cd ~/dev/arch-hypr
     nohup electron . >/dev/null 2>&1 &
     disown
+    set_reserved 390
     exit 0
 fi
 
@@ -55,15 +57,15 @@ fi
 # If it is running and mapped, toggle position
 X_POS=$(hyprctl clients -j | jq -r '.[] | select(.title=="arch-hypr-panel") | .at[0]' | head -n 1)
 
-# Panel width is 350. If it's less than 0, it means it's tucked away. Slide it in to 0
+# Panel width is 390. If it's less than 0, it means it's tucked away. Slide it in to 0
 if [ "$X_POS" -lt "0" ]; then
     # Currently hidden -> Slide in to 0
     hyprctl dispatch movewindowpixel "exact 0 0,title:^(arch-hypr-panel)$"
     # Push other windows back by reserving space on the left
-    set_reserved 350
+    set_reserved 390
 else
-    # Currently visible -> Slide out to -350
-    hyprctl dispatch movewindowpixel "exact -350 0,title:^(arch-hypr-panel)$"
+    # Currently visible -> Slide out to -390
+    hyprctl dispatch movewindowpixel "exact -390 0,title:^(arch-hypr-panel)$"
     # Remove reserved space
     set_reserved 0
 fi

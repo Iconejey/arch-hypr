@@ -3,10 +3,10 @@ const path = require('path');
 
 function createWindow() {
 	const { height } = screen.getPrimaryDisplay().workAreaSize;
-	const panelWidth = 350; // no spacing
+	const panelWidth = 390; // no spacing
 	const win = new BrowserWindow({
 		title: 'arch-hypr-panel',
-		x: -panelWidth, // Start totally off-screen
+		x: 0, // Start totally off-screen
 		y: 0,
 		width: panelWidth,
 		height: height,
