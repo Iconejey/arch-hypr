@@ -829,8 +829,12 @@ const brightnessSlider = $('#brightness-slider');
 const brightnessLabel = $('#brightness-label');
 
 if (brightnessSlider && brightnessLabel) {
+        let isDraggingBrightness = false;
+        
         function updateBrightnessUI() {
-                exec('brightnessctl i', (error, stdout) => {
+                if (isDraggingBrightness) return;
+                require('child_process').exec('brightnessctl i', (error, stdout) => {
+                        if (isDraggingBrightness) return;
                         if (!error && stdout) {
                                 const match = stdout.match(/\((\d+)%\)/);
                                 if (match && match[1]) {
@@ -843,13 +847,61 @@ if (brightnessSlider && brightnessLabel) {
                 });
         }
 
+        brightnessSlider.addEventListener('mousedown', () => isDraggingBrightness = true);
+        brightnessSlider.addEventListener('mouseup', () => isDraggingBrightness = false);
+        brightnessSlider.addEventListener('touchstart', () => isDraggingBrightness = true);
+        brightnessSlider.addEventListener('touchend', () => isDraggingBrightness = false);
+
         brightnessSlider.addEventListener('input', (e) => {
                 const value = e.target.value;
                 brightnessLabel.textContent = `${value}%`;
                 e.target.style.setProperty('--val', `${value}%`);
-                exec(`brightnessctl s ${value}%`);
+                require('child_process').exec(`brightnessctl s ${value}%`);
         });
 
-        // initial
+        // initial and poll
         updateBrightnessUI();
+        setInterval(updateBrightnessUI, 200);
+}
+
+
+
+// Volume controls
+const volumeSlider = document.querySelector('.volume-slider');
+const volumeLabel = document.querySelector('#volume-label');
+
+if (volumeSlider && volumeLabel) {
+        let isDraggingVolume = false;
+
+        function updateVolumeUI() {
+                if (isDraggingVolume) return;
+                require('child_process').exec('wpctl get-volume @DEFAULT_AUDIO_SINK@', (error, stdout) => {
+                        if (isDraggingVolume) return;
+                        if (!error && stdout) {
+                                const match = stdout.match(/Volume:\s+([0-9.]+)/);
+                                if (match && match[1]) {
+                                        const percentage = Math.round(parseFloat(match[1]) * 100);
+                                        volumeSlider.value = percentage;
+                                        volumeSlider.style.setProperty('--val', `${percentage}%`);
+                                        volumeLabel.textContent = `${percentage}%`;
+                                }
+                        }
+                });
+        }
+
+        volumeSlider.addEventListener('mousedown', () => isDraggingVolume = true);
+        volumeSlider.addEventListener('mouseup', () => isDraggingVolume = false);
+        volumeSlider.addEventListener('touchstart', () => isDraggingVolume = true);
+        volumeSlider.addEventListener('touchend', () => isDraggingVolume = false);
+
+        volumeSlider.addEventListener('input', (e) => {
+                const value = e.target.value;
+                volumeLabel.textContent = `${value}%`;
+                e.target.style.setProperty('--val', `${value}%`);
+                require('child_process').exec(`wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ ${value}%`);
+        });
+
+        // initial and poll
+        updateVolumeUI();
+        setInterval(updateVolumeUI, 200);
 }
