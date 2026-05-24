@@ -711,3 +711,115 @@ const scanFrame = () => {
 		}
 	});
 };
+
+// Bluetooth Management
+const updateBluetoothStatus = () => {
+	const btBtn = document.querySelector('.group.bluetooth-management button');
+	if (!btBtn) return;
+
+	const icon = btBtn.querySelector('i');
+	const titleSpan = btBtn.querySelector('span');
+
+	exec('bluetoothctl show', (err, stdout) => {
+		if (err || !stdout) return;
+
+		const poweredMatch = stdout.match(/Powered:\s+(yes|no)/);
+		if (!poweredMatch || poweredMatch[1] === 'no') {
+			btBtn.classList.remove('active');
+			if (titleSpan) titleSpan.textContent = 'Disconnected';
+			btBtn.title = 'Bluetooth (Powered Off)';
+			return;
+		}
+
+		exec('bluetoothctl devices Connected', (err2, stdout2) => {
+			if (err2 || !stdout2) return;
+
+			const lines = stdout2.trim().split('\n');
+			const pureLines = lines.map(l => l.replace(/\x1b\[[0-9;]*m/g, '').trim()).filter(l => l.startsWith('Device'));
+
+			if (pureLines.length === 0) {
+				btBtn.classList.add('active'); // It's powered on
+				if (titleSpan) titleSpan.textContent = 'On';
+				btBtn.title = 'Bluetooth (Powered On, No Devices Connected)';
+			} else {
+				const firstDeviceMatch = pureLines[0].match(/Device\s+([A-F0-9:]+)\s+(.*)/i);
+				if (firstDeviceMatch) {
+					const deviceName = firstDeviceMatch[2];
+					btBtn.classList.add('active');
+					if (titleSpan) titleSpan.textContent = deviceName;
+					btBtn.title = `Bluetooth (Connected to ${deviceName})`;
+				}
+			}
+		});
+	});
+};
+
+const updateBluetoothList = () => {
+	const btListContainer = document.querySelector('#bluetooth-list .group');
+	if (!btListContainer) return;
+
+	exec('bluetoothctl devices', (err, stdout) => {
+		if (err || !stdout) return;
+
+		const lines = stdout.trim().split('\n');
+		const pureLines = lines.map(l => l.replace(/\x1b\[[0-9;]*m/g, '').trim()).filter(l => l.startsWith('Device'));
+
+		if (pureLines.length === 0) {
+			btListContainer.innerHTML = `
+				<div style="padding: 16px; text-align: center; opacity: 0.6; font-size: 0.9em;">
+					No Bluetooth devices found
+				</div>
+			`;
+			return;
+		}
+
+		let html = '';
+		pureLines.forEach(line => {
+			const match = line.match(/Device\s+([A-F0-9:]+)\s+(.*)/i);
+			if (!match) return;
+
+			const mac = match[1];
+			const name = match[2];
+
+			let icon = 'bluetooth';
+			const lname = name.toLowerCase();
+			if (lname.includes('airpods') || lname.includes('headphone') || lname.includes('bud') || lname.includes('audio') || lname.includes('bose') || lname.includes('sony')) icon = 'headphones';
+			else if (lname.includes('mouse') || lname.includes('mx master')) icon = 'mouse';
+			else if (lname.includes('keyboard') || lname.includes('keychron')) icon = 'keyboard';
+			else if (lname.includes('phone') || lname.includes('galaxy') || lname.includes('iphone')) icon = 'smartphone';
+
+			html += `
+				<button title="${name}" data-mac="${mac}">
+					<i>${icon}</i>
+					<span>${name}</span>
+				</button>
+			`;
+		});
+
+		btListContainer.innerHTML = html;
+
+		// Handle connect clicks
+		const buttons = btListContainer.querySelectorAll('button');
+		buttons.forEach(btn => {
+			btn.onclick = () => {
+				const mac = btn.dataset.mac;
+				const name = btn.title;
+				exec(`notify-send "Bluetooth" "Connecting to ${name}..."`);
+				exec(`bluetoothctl connect ${mac}`, (errConnect, stdoutConnect) => {
+					if (errConnect || stdoutConnect.includes('Failed')) {
+						exec(`notify-send "Bluetooth" "Failed to connect to ${name}"`);
+					} else {
+						exec(`notify-send "Bluetooth" "Connected to ${name}"`);
+					}
+					updateBluetoothList();
+					updateBluetoothStatus();
+				});
+			};
+		});
+	});
+};
+
+updateBluetoothStatus();
+updateBluetoothList();
+setInterval(updateBluetoothStatus, 5000);
+setInterval(updateBluetoothList, 15000);
