@@ -108,13 +108,6 @@ echo -e "\n${BANNER}                                     ${NC}"
 echo -e "${BANNER}  Applying manual configurations...  ${NC}"
 echo -e "${BANNER}                                     ${NC}\n"
 
-echo -e "${YELLOW}Setting up iwd (wifi)...${NC}"
-sudo mkdir -p /etc/iwd
-sudo cp "$(pwd)/configs/iwd/main.conf" /etc/iwd/main.conf
-sudo systemctl enable --now systemd-resolved 2>/dev/null || true
-sudo systemctl enable --now systemd-networkd 2>/dev/null || true
-sudo ln -sfn /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
-sudo systemctl restart iwd 2>/dev/null || true
 
 echo -e "${YELLOW}Changing default shell to ZSH...${NC}"
 sudo chsh -s $(which zsh) "$USER"
