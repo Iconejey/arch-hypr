@@ -823,3 +823,33 @@ updateBluetoothStatus();
 updateBluetoothList();
 setInterval(updateBluetoothStatus, 5000);
 setInterval(updateBluetoothList, 15000);
+
+// Brightness controls
+const brightnessSlider = $('#brightness-slider');
+const brightnessLabel = $('#brightness-label');
+
+if (brightnessSlider && brightnessLabel) {
+        function updateBrightnessUI() {
+                exec('brightnessctl i', (error, stdout) => {
+                        if (!error && stdout) {
+                                const match = stdout.match(/\((\d+)%\)/);
+                                if (match && match[1]) {
+                                        const percentage = match[1];
+                                        brightnessSlider.value = percentage;
+                                        brightnessSlider.style.setProperty('--val', `${percentage}%`);
+                                        brightnessLabel.textContent = `${percentage}%`;
+                                }
+                        }
+                });
+        }
+
+        brightnessSlider.addEventListener('input', (e) => {
+                const value = e.target.value;
+                brightnessLabel.textContent = `${value}%`;
+                e.target.style.setProperty('--val', `${value}%`);
+                exec(`brightnessctl s ${value}%`);
+        });
+
+        // initial
+        updateBrightnessUI();
+}
