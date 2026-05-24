@@ -1,5 +1,29 @@
 const { exec } = require('child_process');
 
+// Visibility Tracking to save battery
+let isPanelVisible = true;
+try {
+    const STATE_FILE = '/tmp/arch-hypr-panel-state';
+    if (fs.existsSync(STATE_FILE)) {
+        isPanelVisible = fs.readFileSync(STATE_FILE, 'utf8').trim() === 'visible';
+    }
+    
+    fs.watchFile(STATE_FILE, { interval: 100 }, () => {
+        try {
+            isPanelVisible = fs.readFileSync(STATE_FILE, 'utf8').trim() === 'visible';
+            if (isPanelVisible) {
+                // Instantly update everything when panel slides in!
+                if (typeof updateBatteryDetails === 'function') updateBatteryDetails();
+                if (typeof updateWifiStatus === 'function') updateWifiStatus();
+                if (typeof updateBluetoothStatus === 'function') updateBluetoothStatus();
+                if (typeof updateBrightnessUI === 'function') updateBrightnessUI();
+                if (typeof updateVolumeUI === 'function') updateVolumeUI();
+            }
+        } catch(e) {}
+    });
+} catch(e) {}
+
+
 // Utils
 function $(selector) {
 	return document.querySelector(selector);
@@ -326,6 +350,7 @@ $('#btn-restart').onclick = () => exec('systemctl reboot');
 
 // Battery Status update
 const updateBatteryDetails = () => {
+	if (!isPanelVisible) return;
 	exec('acpi -b', (err, stdout) => {
 		if (err || !stdout) return;
 
@@ -467,6 +492,7 @@ setInterval(updateClock, 1000); // refresh every second for minimal delay when m
 
 // Wifi Status update
 const updateWifiStatus = () => {
+	if (!isPanelVisible) return;
 	const wifiBtn = document.querySelector('button[data-target="wifi-management"]');
 	if (!wifiBtn) return;
 
@@ -533,6 +559,7 @@ setInterval(updateWifiStatus, 5000); // refresh every 5 seconds
 
 // Wifi List update
 const updateWifiList = () => {
+	if (!isPanelVisible) return;
 	const wifiListContainer = document.querySelector('#wifi-list .group');
 	if (!wifiListContainer) return;
 
@@ -714,6 +741,7 @@ const scanFrame = () => {
 
 // Bluetooth Management
 const updateBluetoothStatus = () => {
+	if (!isPanelVisible) return;
 	const btBtn = document.querySelector('.group.bluetooth-management button');
 	if (!btBtn) return;
 
@@ -755,6 +783,7 @@ const updateBluetoothStatus = () => {
 };
 
 const updateBluetoothList = () => {
+	if (!isPanelVisible) return;
 	const btListContainer = document.querySelector('#bluetooth-list .group');
 	if (!btListContainer) return;
 
@@ -832,6 +861,7 @@ if (brightnessSlider && brightnessLabel) {
         let isDraggingBrightness = false;
         
         function updateBrightnessUI() {
+                if (!isPanelVisible) return;
                 if (isDraggingBrightness) return;
                 require('child_process').exec('brightnessctl i', (error, stdout) => {
                         if (isDraggingBrightness) return;
@@ -874,6 +904,7 @@ if (volumeSlider && volumeLabel) {
         let isDraggingVolume = false;
 
         function updateVolumeUI() {
+                if (!isPanelVisible) return;
                 if (isDraggingVolume) return;
                 require('child_process').exec('wpctl get-volume @DEFAULT_AUDIO_SINK@', (error, stdout) => {
                         if (isDraggingVolume) return;

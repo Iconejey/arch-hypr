@@ -44,6 +44,7 @@ if [ "$1" == "kill" ]; then
         hyprctl --batch "dispatch movewindowpixel exact 0 0,title:^(arch-hypr-panel)$ ; $(get_reserved_commands 390)" >/dev/null
         sleep 0.05
         hyprctl keyword animations:enabled 1 >/dev/null
+        echo "visible" > /tmp/arch-hypr-panel-state
     fi
     exit 0
 fi
@@ -65,6 +66,7 @@ if [ -z "$PROCESS_EXISTS" ]; then
     hyprctl --batch "dispatch movewindowpixel exact 0 0,title:^(arch-hypr-panel)$ ; $(get_reserved_commands 390)" >/dev/null
     sleep 0.05
     hyprctl keyword animations:enabled 1 >/dev/null
+    echo "visible" > /tmp/arch-hypr-panel-state
     exit 0
 fi
 
@@ -80,8 +82,9 @@ X_POS=$(hyprctl clients -j | jq -r '.[] | select(.title=="arch-hypr-panel") | .a
 if [ "$X_POS" -lt "0" ]; then
     # Currently hidden -> Slide in to 0
     hyprctl --batch "dispatch movewindowpixel exact 0 0,title:^(arch-hypr-panel)$ ; $(get_reserved_commands 390)" >/dev/null
+    echo "visible" > /tmp/arch-hypr-panel-state
 else
     # Currently visible -> Slide out to -390
     hyprctl --batch "dispatch movewindowpixel exact -390 0,title:^(arch-hypr-panel)$ ; $(get_reserved_commands 0)" >/dev/null
+    echo "hidden" > /tmp/arch-hypr-panel-state
 fi
-
