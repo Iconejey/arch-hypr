@@ -598,6 +598,12 @@ const updateWifiList = () => {
 						});
 					};
 				});
+			} else {
+				wifiListContainer.innerHTML = `
+					<div style="padding: 16px; text-align: center; opacity: 0.6; font-size: 0.9em;">
+						No networks found
+					</div>
+				`;
 			}
 		});
 	});
