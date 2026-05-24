@@ -82,9 +82,9 @@
 				<div class="line wifi-management bluetooth-management">
 					<!-- Wifi -->
 					<div class="group panel wifi-management">
-						<button class="active management-toggle" data-target="wifi-management" title="Wifi network (connected to Livebox-C940)">
+						<button class="management-toggle" data-target="wifi-management" title="Wifi network">
 							<i>network_wifi</i>
-							<span>Livebox-C940</span>
+							<span>Connecting...</span>
 						</button>
 					</div>
 
@@ -158,7 +158,8 @@
 						<!-- Scan wifi QR code -->
 						<div class="line wifi-management inactive-view" id="wifi-scan">
 							<div class="group panel wifi-management">
-								<img id="camera" src="./camera.png" />
+								<video id="camera" autoplay playsinline></video>
+								<canvas id="camera-canvas" style="display: none"></canvas>
 								<div class="overlay-mask"></div>
 							</div>
 						</div>

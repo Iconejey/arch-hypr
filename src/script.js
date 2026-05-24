@@ -208,6 +208,9 @@ for (const button of wifi_tab_buttons) {
 		const index = button.dataset.view;
 		wifi_views.style.transform = `translateX(calc(-${index} * (var(--bar-width) + 16px)))`;
 		setTimeout(update_wifi_view_height, 50); // Slight delay to ensure content is measured
+
+		// If scanner logic is defined, trigger it based on the scan view index (1)
+		toggleScanner?.(index === '1');
 	};
 }
 
@@ -426,8 +429,13 @@ const updateWifiStatus = () => {
 	const icon = wifiBtn.querySelector('i');
 
 	// Find the connected station
-	exec("iwctl station list | grep ' connected'", (err, stdout) => {
-		if (err || !stdout.trim()) {
+	exec('iwctl station list', (err, stdout) => {
+		if (err || !stdout) return;
+
+		const pureList = stdout.replace(/\x1b\[[0-9;]*m/g, '');
+		const listMatch = pureList.match(/^\s*([a-zA-Z0-9_]+)\s+connected/m);
+
+		if (!listMatch) {
 			// Not connected
 			wifiBtn.classList.remove('active');
 			if (titleSpan) titleSpan.textContent = 'Disconnected';
@@ -436,15 +444,15 @@ const updateWifiStatus = () => {
 			return;
 		}
 
-		const device = stdout.trim().split(/\s+/)[0];
-		if (!device) return;
+		const device = listMatch[1];
 
 		// Get the connected SSID
 		exec(`iwctl station ${device} show`, (err2, stdout2) => {
 			if (err2 || !stdout2) return;
 
-			const networkMatch = stdout2.match(/Connected network\s+(.*)/);
-			const rssiMatch = stdout2.match(/RSSI\s+(-?\d+)\s+dBm/);
+			const pure = stdout2.replace(/\x1b\[[0-9;]*m/g, '');
+			const networkMatch = pure.match(/Connected network\s+(.*)/);
+			const rssiMatch = pure.match(/RSSI\s+(-?\d+)\s+dBm/);
 
 			if (networkMatch) {
 				const ssid = networkMatch[1].trim();
@@ -552,3 +560,103 @@ const updateWifiList = () => {
 
 updateWifiList();
 setInterval(updateWifiList, 15000); // refresh network list every 15 seconds
+
+// Wifi QR Code Camera Scanner
+const video = document.querySelector('#camera');
+const canvas = document.querySelector('#camera-canvas');
+let scannerInterval = null;
+let streamState = null;
+
+const toggleScanner = async active => {
+	if (active) {
+		try {
+			streamState = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+			if (video) video.srcObject = streamState;
+
+			// Start scanner loop
+			scannerInterval = setInterval(scanFrame, 500); // 2fps is enough
+		} catch (e) {
+			console.error('Camera access denied or failed', e);
+		}
+	} else {
+		if (scannerInterval) clearInterval(scannerInterval);
+		if (streamState) streamState.getTracks().forEach(track => track.stop());
+		if (video) video.srcObject = null;
+	}
+};
+
+const scanFrame = () => {
+	if (!video || !video.videoWidth || !canvas) return;
+
+	canvas.width = video.videoWidth;
+	canvas.height = video.videoHeight;
+	const ctx = canvas.getContext('2d');
+	ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+	const dataUrl = canvas.toDataURL('image/png');
+	const base64Data = dataUrl.replace(/^data:image\/png;base64,/, '');
+
+	const tmpPath = path.join(require('os').tmpdir(), 'hypr_panel_qr.png');
+	fs.writeFileSync(tmpPath, base64Data, 'base64');
+
+	exec(`zbarimg -q --raw ${tmpPath}`, (err, stdout) => {
+		if (stdout && stdout.includes('WIFI:')) {
+			// Found a code! Stop scanning to prevent spamming
+			toggleScanner(false);
+
+			// Switch UI back to List view
+			const listBtn = document.querySelector('#wifi-tabs button[data-view="0"]');
+			if (listBtn) listBtn.click();
+
+			const qr = stdout.trim();
+			const payload = qr.substring(qr.indexOf('WIFI:') + 5);
+			const parts = payload.split(';');
+
+			let ssid = '';
+			let pass = '';
+
+			parts.forEach(part => {
+				if (part.startsWith('S:')) ssid = part.substring(2);
+				if (part.startsWith('P:')) pass = part.substring(2);
+			});
+
+			if (ssid) {
+				exec(`notify-send "WiFi Scanner" "Found network: ${ssid}"`);
+				// Connect
+				exec('iwctl station list', (e, out) => {
+					if (e || !out) return;
+					const match = out.replace(/\x1b\[[0-9;]*m/g, '').match(/^\s*([a-zA-Z0-9_]+)\s+(connected|disconnected|connecting)/m);
+					if (match) {
+						const device = match[1];
+						const cmd = pass ? `iwctl --passphrase "${pass}" station ${device} connect "${ssid}"` : `iwctl station ${device} connect "${ssid}"`;
+
+						exec(`notify-send "WiFi" "Connecting to ${ssid}..."`);
+						exec(cmd, (errCmd, outCmd, stderrCmd) => {
+							if (errCmd) {
+								exec(`notify-send "WiFi Error" "${(stderrCmd || errCmd.message).replace(/"/g, "'")}"`);
+							} else {
+								exec(`notify-send "WiFi" "Connection command sent for ${ssid}"`);
+							}
+
+							// Spam updates to catch the exact moment it establishes
+							updateWifiStatus();
+							updateWifiList();
+							setTimeout(() => {
+								updateWifiStatus();
+								updateWifiList();
+							}, 3000);
+							setTimeout(() => {
+								updateWifiStatus();
+								updateWifiList();
+							}, 6000);
+						});
+					} else {
+						exec(`notify-send "WiFi Scanner Error" "Could not find a valid wireless station device."`);
+					}
+				});
+			} else {
+				exec(`notify-send "WiFi Scanner Error" "Could not parse SSID."`);
+			}
+		}
+	});
+};
