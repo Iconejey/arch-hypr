@@ -9,7 +9,7 @@ hyprland,yay -S hyprland
 hyprpicker,yay -S hyprpicker
 hyprshot,yay -S hyprshot
 hyprshutdown,yay -S hyprshutdown
-tty-ms-fonts,yay -S ttf-ms-fonts
+ttf-ms-fonts,yay -S ttf-ms-fonts
 ttf-material-symbols-variable,yay -S ttf-material-symbols-variable
 brightnessctl,yay -S brightnessctl
 iwd,yay -S iwd
