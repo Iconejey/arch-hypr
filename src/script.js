@@ -211,21 +211,66 @@ for (const button of wifi_tab_buttons) {
 
 		// If scanner logic is defined, trigger it based on the scan view index (1)
 		toggleScanner?.(index === '1');
+
+		if (typeof toggleShareQR !== 'undefined') {
+			toggleShareQR(index === '2');
+		}
 	};
 }
 
 // Initial height setup
 update_wifi_view_height();
 
-// Generate QR Code
-new QRCode($('.wifi-qr-code'), {
-	text: 'WIFI:T:WPA;S:Livebox-C940;P:hiEudZiR37d2nGdiz;;',
-	width: 512,
-	height: 512,
-	colorDark: '#191919',
-	colorLight: '#c6c6c6',
-	correctLevel: QRCode.CorrectLevel.M
-});
+// Generate QR Code dynamically
+const toggleShareQR = active => {
+	if (!active) return;
+
+	// Get active wifi device
+	exec('iwctl station list', (err, stdout) => {
+		if (err || !stdout) return;
+		const pureList = stdout.replace(/\x1b\[[0-9;]*m/g, '');
+		const listMatch = pureList.match(/^\s*([a-zA-Z0-9_]+)\s+connected/m);
+		if (!listMatch) return;
+
+		const device = listMatch[1];
+
+		exec(`iwctl station ${device} show`, (err2, stdout2) => {
+			if (err2 || !stdout2) return;
+			const pure = stdout2.replace(/\x1b\[[0-9;]*m/g, '');
+			const match = pure.match(/Connected network\s+(.*)/);
+			if (!match) return;
+
+			const ssid = match[1].trim();
+
+			exec(`pkexec cat "/var/lib/iwd/${ssid}.psk"`, (err3, stdout3) => {
+				if (err3 || !stdout3) return;
+
+				const passMatch = stdout3.match(/Passphrase=(.*)/);
+				if (!passMatch) return;
+
+				const password = passMatch[1].trim();
+
+				// Clear previous QR code if any
+				$('.wifi-qr-code').innerHTML = '';
+
+				const span = document.querySelector('#wifi-share span');
+				if (span) span.textContent = password;
+
+				new QRCode($('.wifi-qr-code'), {
+					text: `WIFI:T:WPA;S:${ssid};P:${password};;`,
+					width: 512,
+					height: 512,
+					colorDark: '#191919',
+					colorLight: '#c6c6c6',
+					correctLevel: QRCode.CorrectLevel.M
+				});
+
+				// Recalculate height so QR doesn't get clipped
+				setTimeout(update_wifi_view_height, 50);
+			});
+		});
+	});
+};
 
 // Toggle album view
 const album_toggle = $('.toggle-album');
