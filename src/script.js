@@ -1021,3 +1021,211 @@ if (volumeSlider && volumeLabel) {
 	updateVolumeUI();
 	setInterval(updateVolumeUI, 200);
 }
+
+// --- App Search Integration ---
+const appSearchInput = document.querySelector('#app-search-input');
+const appListContainer = document.querySelector('#app-list-container');
+
+if (appSearchInput && appListContainer) {
+	let appsListCache = [];
+
+	const parseDesktopFile = filePath => {
+		try {
+			const content = fs.readFileSync(filePath, 'utf8');
+			const lines = content.split('\n');
+			let isDesktopEntry = false;
+			let name, execCmd, icon, noDisplay;
+
+			for (const line of lines) {
+				const trimmed = line.trim();
+				if (trimmed.startsWith('[')) {
+					isDesktopEntry = trimmed === '[Desktop Entry]';
+					continue;
+				}
+				if (!isDesktopEntry || !trimmed.includes('=')) continue;
+
+				const equalsIdx = trimmed.indexOf('=');
+				const key = trimmed.substring(0, equalsIdx).trim();
+				const val = trimmed.substring(equalsIdx + 1).trim();
+
+				if (key === 'Name' && !name)
+					name = val; // Only take first Name (prevent taking Name[fr] etc if loop doesn't handle locale, although usually locale is Name[locale]=)
+				else if (key === 'Exec') {
+					// Remove %u, %U, %f, %F placeholders
+					execCmd = val.replace(/%[a-zA-Z]/g, '').trim();
+				} else if (key === 'Icon') icon = val;
+				else if (key === 'NoDisplay') noDisplay = val.toLowerCase() === 'true';
+			}
+
+			if (name && execCmd && !noDisplay) {
+				return { name, exec: execCmd, icon };
+			}
+		} catch (e) {}
+		return null;
+	};
+
+	const findIcon = iconName => {
+		if (!iconName) return null; // no icon found
+		if (iconName.startsWith('/')) return iconName; // Absolute path
+
+		// Common GTK icon search paths
+		const iconExts = ['.png', '.svg', '.xpm'];
+		const searchPaths = [
+			'/usr/share/icons/hicolor/128x128/apps/',
+			'/usr/share/icons/hicolor/scalable/apps/',
+			'/usr/share/icons/hicolor/64x64/apps/',
+			'/usr/share/icons/hicolor/48x48/apps/',
+			'/usr/share/icons/breeze/apps/48/',
+			'/usr/share/icons/Adwaita/48x48/apps/',
+			'/usr/share/pixmaps/',
+			path.join(require('os').homedir(), '.local/share/icons/hicolor/128x128/apps/'),
+			path.join(require('os').homedir(), '.local/share/icons/hicolor/scalable/apps/'),
+			path.join(require('os').homedir(), '.local/share/icons/')
+		];
+
+		for (const dir of searchPaths) {
+			try {
+				if (!fs.existsSync(dir)) continue;
+				for (const ext of iconExts) {
+					const fullPath = path.join(dir, iconName + ext);
+					if (fs.existsSync(fullPath)) return fullPath;
+				}
+			} catch (e) {}
+		}
+
+		return null;
+	};
+
+	const loadApps = () => {
+		const appDirs = ['/usr/share/applications/', path.join(require('os').homedir(), '.local/share/applications/')];
+
+		const apps = [];
+
+		appDirs.forEach(dir => {
+			if (!fs.existsSync(dir)) return;
+			try {
+				const files = fs.readdirSync(dir);
+				for (const file of files) {
+					if (file.endsWith('.desktop')) {
+						const app = parseDesktopFile(path.join(dir, file));
+						if (app && !apps.some(a => a.name === app.name)) {
+							// For launching, it's safer to use gtk-launch if possible, or just the exec string
+							app.desktopFile = file.replace('.desktop', '');
+							apps.push(app);
+						}
+					}
+				}
+			} catch (e) {}
+		});
+
+		// Alphabetical sort
+		apps.sort((a, b) => a.name.localeCompare(b.name));
+
+		// Add absolute paths for icons
+		apps.forEach(app => {
+			app.iconPath = findIcon(app.icon);
+		});
+
+		return apps;
+	};
+
+	const renderApps = (query = '') => {
+		let filteredApps = [];
+		if (query) {
+			const lowerQuery = query.toLowerCase();
+			filteredApps = appsListCache.filter(app => app.name.toLowerCase().includes(lowerQuery));
+
+			// Order "starts with" matches first
+			filteredApps.sort((a, b) => {
+				const aStarts = a.name.toLowerCase().startsWith(lowerQuery);
+				const bStarts = b.name.toLowerCase().startsWith(lowerQuery);
+				if (aStarts && !bStarts) return -1;
+				if (!aStarts && bStarts) return 1;
+				return a.name.localeCompare(b.name);
+			});
+		}
+
+		let html = '';
+		if (query && filteredApps.length > 0) {
+			filteredApps.forEach((app, index) => {
+				html += `
+					<button class="${index === 0 ? 'focused' : ''}" title="${app.name}" data-exec="${app.exec}" data-desktop="${app.desktopFile}">
+						${app.iconPath ? `<img src="${app.iconPath}" onerror="this.outerHTML='<i>apps</i>'" />` : `<i>apps</i>`}
+						<span>${app.name}</span>
+					</button>
+				`;
+			});
+		}
+
+		if (query && !html) {
+			html = '<div style="padding: 16px; text-align: center; opacity: 0.6;">No apps found</div>';
+		}
+
+		appListContainer.innerHTML = html;
+		appListContainer.parentElement.style.display = query ? '' : 'none';
+
+		appListContainer.querySelectorAll('button').forEach(btn => {
+			btn.onclick = () => {
+				const execCmd = btn.dataset.exec;
+				const desktopFile = btn.dataset.desktop;
+
+				// Try gtk-launch first, fallback to direct exec
+				exec(`gtk-launch \${desktopFile}`, err => {
+					if (err) {
+						exec(execCmd);
+					}
+				});
+
+				appSearchInput.value = '';
+				renderApps();
+				// simulate escape to close the panel
+				document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+			};
+		});
+
+		// Trigger container height update when the number of rendered items changes
+		if (typeof update_app_view_height === 'function') {
+			update_app_view_height();
+		}
+	};
+
+	// Initialize on next tick so it doesn't block startup
+	setTimeout(() => {
+		appsListCache = loadApps();
+		renderApps();
+	}, 500);
+
+	appSearchInput.addEventListener('input', e => {
+		renderApps(e.target.value);
+	});
+
+	// Keyboard navigation support
+	appSearchInput.addEventListener('keydown', e => {
+		const focusedBtn = appListContainer.querySelector('button.focused');
+
+		if (e.key === 'Enter') {
+			e.preventDefault();
+			if (focusedBtn) focusedBtn.click();
+		} else if (e.key === 'ArrowDown') {
+			e.preventDefault();
+			if (focusedBtn && focusedBtn.nextElementSibling && focusedBtn.nextElementSibling.tagName === 'BUTTON') {
+				focusedBtn.classList.remove('focused');
+				focusedBtn.nextElementSibling.classList.add('focused');
+				focusedBtn.nextElementSibling.scrollIntoView({ block: 'nearest' });
+			}
+		} else if (e.key === 'ArrowUp') {
+			e.preventDefault();
+			if (focusedBtn && focusedBtn.previousElementSibling && focusedBtn.previousElementSibling.tagName === 'BUTTON') {
+				focusedBtn.classList.remove('focused');
+				focusedBtn.previousElementSibling.classList.add('focused');
+				focusedBtn.previousElementSibling.scrollIntoView({ block: 'nearest' });
+			}
+		}
+	});
+
+	// Refresh apps occasionally in case new ones are installed
+	setInterval(() => {
+		appsListCache = loadApps();
+		renderApps(appSearchInput.value);
+	}, 60000 * 5); // 5 mins
+}

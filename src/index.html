@@ -146,8 +146,7 @@
 
 				<!-- Bluetooth devices list -->
 				<div class="line list bluetooth-management dedicated hidden" id="bluetooth-list">
-					<div class="group panel toggle-control bluetooth-management">
-					</div>
+					<div class="group panel toggle-control bluetooth-management"></div>
 				</div>
 
 				<!-- Brightness -->
@@ -273,37 +272,12 @@
 							<div class="line search-box">
 								<div class="group panel">
 									<i>search</i>
-									<input type="text" placeholder="Search apps..." />
+									<input type="text" id="app-search-input" placeholder="Search apps..." autocomplete="off" spellcheck="false" />
 								</div>
 							</div>
 
 							<div class="line list app-list">
-								<div class="group panel toggle-control">
-									<button class="focused" title="Google Chrome">
-										<img src="./chrome.png" />
-										<span>Google Chrome</span>
-									</button>
-
-									<button title="Spotify">
-										<img src="./spotify.png" />
-										<span>Spotify</span>
-									</button>
-
-									<button title="Terminal">
-										<i>terminal</i>
-										<span>Terminal</span>
-									</button>
-
-									<button title="Files">
-										<i>folder</i>
-										<span>Files</span>
-									</button>
-
-									<button title="Settings">
-										<i>settings</i>
-										<span>Settings</span>
-									</button>
-								</div>
+								<div class="group panel toggle-control" id="app-list-container"></div>
 							</div>
 						</div>
 					</div>

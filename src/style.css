@@ -211,6 +211,7 @@ main {
 
 		&.list {
 			max-height: 375px;
+			height: auto;
 
 			& .group {
 				flex-direction: column;
@@ -536,6 +537,9 @@ main {
 			}
 
 			& .app-list {
+				max-height: 480px;
+				height: auto;
+
 				& .group button img {
 					width: 24px;
 					height: 24px;
