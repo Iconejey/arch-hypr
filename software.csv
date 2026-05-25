@@ -36,3 +36,9 @@ libfprint-tod,yay -S libfprint-tod
 libfprint-2-tod1-xps9300-bin,yay -S libfprint-2-tod1-xps9300-bin
 fprintd,yay -S fprintd
 electron,yay -S electron
+playerctl,yay -S playerctl
+power-profiles-daemon,yay -S power-profiles-daemon
+libnotify,yay -S libnotify
+polkit-gnome,yay -S polkit-gnome
+wireplumber,yay -S wireplumber
+jq,yay -S jq

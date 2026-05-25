@@ -3,26 +3,25 @@ const { exec } = require('child_process');
 // Visibility Tracking to save battery
 let isPanelVisible = true;
 try {
-    const STATE_FILE = '/tmp/arch-hypr-panel-state';
-    if (fs.existsSync(STATE_FILE)) {
-        isPanelVisible = fs.readFileSync(STATE_FILE, 'utf8').trim() === 'visible';
-    }
-    
-    fs.watchFile(STATE_FILE, { interval: 100 }, () => {
-        try {
-            isPanelVisible = fs.readFileSync(STATE_FILE, 'utf8').trim() === 'visible';
-            if (isPanelVisible) {
-                // Instantly update everything when panel slides in!
-                if (typeof updateBatteryDetails === 'function') updateBatteryDetails();
-                if (typeof updateWifiStatus === 'function') updateWifiStatus();
-                if (typeof updateBluetoothStatus === 'function') updateBluetoothStatus();
-                if (typeof updateBrightnessUI === 'function') updateBrightnessUI();
-                if (typeof updateVolumeUI === 'function') updateVolumeUI();
-            }
-        } catch(e) {}
-    });
-} catch(e) {}
+	const STATE_FILE = '/tmp/arch-hypr-panel-state';
+	if (fs.existsSync(STATE_FILE)) {
+		isPanelVisible = fs.readFileSync(STATE_FILE, 'utf8').trim() === 'visible';
+	}
 
+	fs.watchFile(STATE_FILE, { interval: 100 }, () => {
+		try {
+			isPanelVisible = fs.readFileSync(STATE_FILE, 'utf8').trim() === 'visible';
+			if (isPanelVisible) {
+				// Instantly update everything when panel slides in!
+				if (typeof updateBatteryDetails === 'function') updateBatteryDetails();
+				if (typeof updateWifiStatus === 'function') updateWifiStatus();
+				if (typeof updateBluetoothStatus === 'function') updateBluetoothStatus();
+				if (typeof updateBrightnessUI === 'function') updateBrightnessUI();
+				if (typeof updateVolumeUI === 'function') updateVolumeUI();
+			}
+		} catch (e) {}
+	});
+} catch (e) {}
 
 // Utils
 function $(selector) {
@@ -300,6 +299,94 @@ const toggleShareQR = active => {
 const album_toggle = $('.toggle-album');
 const media_container = $('#media');
 album_toggle.onclick = () => media_container.classList.toggle('album');
+
+// Media integration with playerctl
+const media_title = $('#media .media-info .bold');
+const media_artist = $('#media .media-info .small');
+const media_art = $('#media .album-art img');
+const btn_prev = $('#media .media-buttons button:nth-child(1)');
+const btn_play = $('#media .media-buttons button:nth-child(2)');
+const btn_next = $('#media .media-buttons button:nth-child(3)');
+const btn_play_icon = btn_play.querySelector('i');
+const media_slider = $('#media-slider');
+
+media_art.onload = () => {
+	if (media_art.naturalWidth && media_art.naturalHeight) {
+		const ratio = media_art.naturalWidth / media_art.naturalHeight;
+		media_container.style.setProperty('--art-ratio', ratio);
+	}
+};
+
+btn_prev.onclick = () => exec('playerctl previous');
+btn_play.onclick = () => exec('playerctl play-pause');
+btn_next.onclick = () => exec('playerctl next');
+
+let isDraggingMedia = false;
+
+if (media_slider) {
+	media_slider.addEventListener('mousedown', () => (isDraggingMedia = true));
+	media_slider.addEventListener('mouseup', () => (isDraggingMedia = false));
+	media_slider.addEventListener('touchstart', () => (isDraggingMedia = true));
+	media_slider.addEventListener('touchend', () => (isDraggingMedia = false));
+
+	media_slider.addEventListener('change', () => {
+		// playerctl position takes seconds
+		exec(`playerctl metadata mpris:length`, (err, stdout) => {
+			if (!err && stdout.trim()) {
+				const length = parseInt(stdout.trim()) / 1000000;
+				const newPos = (media_slider.value / 100) * length;
+				exec(`playerctl position ${newPos}`);
+			}
+		});
+	});
+}
+
+function update_media() {
+	exec('playerctl status', (err, stdout) => {
+		const status = stdout.trim();
+		if (err || status === 'Stopped' || status === '') {
+			media_container.style.display = 'none';
+		} else {
+			media_container.style.display = '';
+			btn_play_icon.innerText = status === 'Playing' ? 'pause' : 'play_arrow';
+
+			exec("playerctl metadata --format '{{title}};;{{artist}};;{{mpris:artUrl}};;{{mpris:length}}'", (err, meta) => {
+				if (!err && meta) {
+					const parts = meta.trim().split(';;');
+					const title = parts[0];
+					const artist = parts[1];
+					const artUrl = parts[2];
+					const length = parts[3] ? parseInt(parts[3]) / 1000000 : 0;
+
+					if (title) media_title.innerText = title;
+					if (artist) media_artist.innerText = artist;
+					if (artUrl) {
+						let url = artUrl.replace('file://', '');
+						if (media_art.src !== url && media_art.getAttribute('src') !== url) {
+							media_art.src = url;
+						}
+					}
+
+					if (length > 0 && !isDraggingMedia) {
+						exec('playerctl position', (errPos, posOut) => {
+							if (!errPos && posOut.trim()) {
+								const pos = parseFloat(posOut.trim());
+								const perc = (pos / length) * 100;
+								if (media_slider) {
+									media_slider.value = perc;
+									media_slider.style.setProperty('--val', `${perc}%`);
+								}
+							}
+						});
+					}
+				}
+			});
+		}
+	});
+}
+
+setInterval(update_media, 1000);
+update_media();
 
 // App tabs behavior
 const app_views = $('#app-views');
@@ -858,81 +945,79 @@ const brightnessSlider = $('#brightness-slider');
 const brightnessLabel = $('#brightness-label');
 
 if (brightnessSlider && brightnessLabel) {
-        let isDraggingBrightness = false;
-        
-        function updateBrightnessUI() {
-                if (!isPanelVisible) return;
-                if (isDraggingBrightness) return;
-                require('child_process').exec('brightnessctl i', (error, stdout) => {
-                        if (isDraggingBrightness) return;
-                        if (!error && stdout) {
-                                const match = stdout.match(/\((\d+)%\)/);
-                                if (match && match[1]) {
-                                        const percentage = match[1];
-                                        brightnessSlider.value = percentage;
-                                        brightnessSlider.style.setProperty('--val', `${percentage}%`);
-                                        brightnessLabel.textContent = `${percentage}%`;
-                                }
-                        }
-                });
-        }
+	let isDraggingBrightness = false;
 
-        brightnessSlider.addEventListener('mousedown', () => isDraggingBrightness = true);
-        brightnessSlider.addEventListener('mouseup', () => isDraggingBrightness = false);
-        brightnessSlider.addEventListener('touchstart', () => isDraggingBrightness = true);
-        brightnessSlider.addEventListener('touchend', () => isDraggingBrightness = false);
+	function updateBrightnessUI() {
+		if (!isPanelVisible) return;
+		if (isDraggingBrightness) return;
+		require('child_process').exec('brightnessctl i', (error, stdout) => {
+			if (isDraggingBrightness) return;
+			if (!error && stdout) {
+				const match = stdout.match(/\((\d+)%\)/);
+				if (match && match[1]) {
+					const percentage = match[1];
+					brightnessSlider.value = percentage;
+					brightnessSlider.style.setProperty('--val', `${percentage}%`);
+					brightnessLabel.textContent = `${percentage}%`;
+				}
+			}
+		});
+	}
 
-        brightnessSlider.addEventListener('input', (e) => {
-                const value = e.target.value;
-                brightnessLabel.textContent = `${value}%`;
-                e.target.style.setProperty('--val', `${value}%`);
-                require('child_process').exec(`brightnessctl s ${value}%`);
-        });
+	brightnessSlider.addEventListener('mousedown', () => (isDraggingBrightness = true));
+	brightnessSlider.addEventListener('mouseup', () => (isDraggingBrightness = false));
+	brightnessSlider.addEventListener('touchstart', () => (isDraggingBrightness = true));
+	brightnessSlider.addEventListener('touchend', () => (isDraggingBrightness = false));
 
-        // initial and poll
-        updateBrightnessUI();
-        setInterval(updateBrightnessUI, 200);
+	brightnessSlider.addEventListener('input', e => {
+		const value = e.target.value;
+		brightnessLabel.textContent = `${value}%`;
+		e.target.style.setProperty('--val', `${value}%`);
+		require('child_process').exec(`brightnessctl s ${value}%`);
+	});
+
+	// initial and poll
+	updateBrightnessUI();
+	setInterval(updateBrightnessUI, 200);
 }
-
-
 
 // Volume controls
 const volumeSlider = document.querySelector('.volume-slider');
 const volumeLabel = document.querySelector('#volume-label');
 
 if (volumeSlider && volumeLabel) {
-        let isDraggingVolume = false;
+	let isDraggingVolume = false;
 
-        function updateVolumeUI() {
-                if (!isPanelVisible) return;
-                if (isDraggingVolume) return;
-                require('child_process').exec('wpctl get-volume @DEFAULT_AUDIO_SINK@', (error, stdout) => {
-                        if (isDraggingVolume) return;
-                        if (!error && stdout) {
-                                const match = stdout.match(/Volume:\s+([0-9.]+)/);
-                                if (match && match[1]) {
-                                        const percentage = Math.round(parseFloat(match[1]) * 100);
-                                        volumeSlider.value = percentage;
-                                        volumeSlider.style.setProperty('--val', `${percentage}%`);
-                                        volumeLabel.textContent = `${percentage}%`;
-                                }
-                        }
-                });
-        }
+	function updateVolumeUI() {
+		if (!isPanelVisible) return;
+		if (isDraggingVolume) return;
+		require('child_process').exec('wpctl get-volume @DEFAULT_AUDIO_SINK@', (error, stdout) => {
+			if (isDraggingVolume) return;
+			if (!error && stdout) {
+				const match = stdout.match(/Volume:\s+([0-9.]+)/);
+				if (match && match[1]) {
+					const percentage = Math.round(parseFloat(match[1]) * 100);
+					volumeSlider.value = percentage;
+					volumeSlider.style.setProperty('--val', `${percentage}%`);
+					volumeLabel.textContent = `${percentage}%`;
+				}
+			}
+		});
+	}
 
-        volumeSlider.addEventListener('mousedown', () => isDraggingVolume = true);
-        volumeSlider.addEventListener('mouseup', () => isDraggingVolume = false);
-        volumeSlider.addEventListener('touchstart', () => isDraggingVolume = true);
-        volumeSlider.addEventListener('touchend', () => isDraggingVolume = false);
+	volumeSlider.addEventListener('mousedown', () => (isDraggingVolume = true));
+	volumeSlider.addEventListener('mouseup', () => (isDraggingVolume = false));
+	volumeSlider.addEventListener('touchstart', () => (isDraggingVolume = true));
+	volumeSlider.addEventListener('touchend', () => (isDraggingVolume = false));
 
-        volumeSlider.addEventListener('input', (e) => {
-                const value = e.target.value;
-                volumeLabel.textContent = `${value}%`;
-                e.target.style.setProperty('--val', `${value}%`);
-                require('child_process').exec(`wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ ${value}%`);
-        });
+	volumeSlider.addEventListener('input', e => {
+		const value = e.target.value;
+		volumeLabel.textContent = `${value}%`;
+		e.target.style.setProperty('--val', `${value}%`);
+		require('child_process').exec(`wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ ${value}%`);
+	});
 
-        // initial and poll
-        updateVolumeUI();
-        setInterval(updateVolumeUI, 200);
+	// initial and poll
+	updateVolumeUI();
+	setInterval(updateVolumeUI, 200);
 }

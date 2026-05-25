@@ -310,6 +310,7 @@ main {
 			height: 200px;
 			position: relative;
 			gap: 0;
+			transition: height 0.3s ease;
 
 			& .album-art {
 				position: absolute;
@@ -404,7 +405,7 @@ main {
 			}
 
 			&.album {
-				height: var(--bar-width);
+				height: calc(var(--bar-width) / var(--art-ratio, 1));
 
 				& .toggle-album {
 					transform: rotate(-180deg);
