@@ -411,7 +411,17 @@ for (const button of app_tab_buttons) {
 	button.onclick = () => {
 		const index = button.dataset.view;
 		app_views.style.transform = `translateX(calc(-${index} * (var(--bar-width) + 16px)))`;
-		setTimeout(update_app_view_height, 50); // Slight delay to ensure content is measured
+		setTimeout(() => {
+			update_app_view_height();
+			// Wait for the animation to finish before focusing
+			if (index === '1' && appSearchInput) {
+				const onTransitionEnd = () => {
+					appSearchInput.focus();
+					app_views.removeEventListener('transitionend', onTransitionEnd);
+				};
+				app_views.addEventListener('transitionend', onTransitionEnd);
+			}
+		}, 20);
 	};
 }
 
