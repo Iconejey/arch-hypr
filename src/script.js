@@ -414,12 +414,21 @@ for (const button of app_tab_buttons) {
 		setTimeout(() => {
 			update_app_view_height();
 			// Wait for the animation to finish before focusing
-			if (index === '1' && appSearchInput) {
-				const onTransitionEnd = () => {
-					appSearchInput.focus();
-					app_views.removeEventListener('transitionend', onTransitionEnd);
-				};
-				app_views.addEventListener('transitionend', onTransitionEnd);
+			if (index === '1') {
+				const searchInput = document.querySelector('#app-search-input');
+				if (searchInput) {
+					const onTransitionEnd = () => {
+						searchInput.focus();
+						app_views.removeEventListener('transitionend', onTransitionEnd);
+					};
+					app_views.addEventListener('transitionend', onTransitionEnd);
+				}
+			} else if (index === '0') {
+				const searchInput = document.querySelector('#app-search-input');
+				if (searchInput && searchInput.value !== '') {
+					searchInput.value = '';
+					searchInput.dispatchEvent(new Event('input'));
+				}
 			}
 		}, 20);
 	};
