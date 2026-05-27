@@ -428,13 +428,22 @@ for (const button of app_tab_buttons) {
 // Initial height setup
 update_app_view_height();
 
-// Escape key to close menu
+// Escape key to close menu or Space to open search
 document.onkeydown = e => {
 	if (e.key === 'Escape' && toggled_class) {
 		for (const dimmed of $$('.dim')) dimmed.classList.remove('dim');
 		for (const dedicated of $$('.line.dedicated')) dedicated.classList.add('hidden');
 		for (const menu_only of $$('.menu-only')) menu_only.classList.add('hidden');
 		toggled_class = null;
+	} else if (e.key === ' ' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+		e.preventDefault();
+		const appSearchBtn = document.querySelector('#app-tabs button[data-view="1"]');
+		if (appSearchBtn && !appSearchBtn.classList.contains('active')) {
+			appSearchBtn.click();
+		} else if (appSearchBtn && appSearchBtn.classList.contains('active')) {
+			const appSearchInput = document.querySelector('#app-search-input');
+			if (appSearchInput) appSearchInput.focus();
+		}
 	}
 };
 
