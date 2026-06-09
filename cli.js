@@ -105,8 +105,16 @@ function progressLine(content, progress, selected) {
 	return `${COLORS.baseBg}${COLORS.fg}${done}${COLORS.progressBg}${COLORS.fg}${todo}${COLORS.reset}`;
 }
 
-function extractStationDevice(stdout) {
+function parseStationStatus(stdout) {
 	return stdout.replace(/\x1b\[[0-9;]*m/g, '').match(/^\s*([a-zA-Z0-9_]+)\s+(connected|disconnected|connecting)/m);
+}
+
+function shellQuote(value) {
+	return `'${String(value).replace(/'/g, `'\\''`)}'`;
+}
+
+function isSafeMac(mac) {
+	return /^[A-F0-9:]{17}$/i.test(mac);
 }
 
 function parseDesktopFile(filePath) {
@@ -185,7 +193,7 @@ async function updateBattery() {
 async function updateWifi() {
 	const stationList = await run('iwctl station list');
 	if (!stationList.ok || !stationList.stdout) return;
-	const station = extractStationDevice(stationList.stdout);
+	const station = parseStationStatus(stationList.stdout);
 	if (!station) return;
 	const device = station[1];
 	state.wifi.device = device;
@@ -512,11 +520,17 @@ if [ -z "$ssid" ]; then
   echo "No connected wifi station found."
   exit 0
 fi
+case "$ssid" in
+  (*[!a-zA-Z0-9_]*|'') echo "Unsafe wifi station identifier."; exit 1 ;;
+esac
 network=$(iwctl station "$ssid" show | sed 's/\\x1b\\[[0-9;]*m//g' | sed -n 's/^\\s*Connected network\\s\\+//p' | head -n1)
 if [ -z "$network" ]; then
   echo "No connected network."
   exit 0
 fi
+case "$network" in
+  (*".."*|*"/"*|*"\\"*) echo "Unsafe network name."; exit 1 ;;
+esac
 psk_file="/var/lib/iwd/${network}.psk"
 if [ -r "$psk_file" ]; then
   psk=$(sed -n 's/^Passphrase=//p' "$psk_file" | head -n1)
@@ -636,7 +650,11 @@ async function onKeypress(str, key) {
 			submenuSelection = 0;
 		} else if ((key.name === 'return' || str === ' ') && state.wifiNetworks[submenuSelection]) {
 			const network = state.wifiNetworks[submenuSelection];
-			await withSuspendedUI(`iwctl station ${state.wifi.device} connect "${network.name}"`);
+			if (!/^[a-zA-Z0-9_]+$/.test(state.wifi.device || '')) {
+				setMessage('Unsafe wifi station identifier', 'error');
+				return;
+			}
+			await withSuspendedUI(`iwctl station ${shellQuote(state.wifi.device)} connect ${shellQuote(network.name)}`);
 			await refreshState();
 		}
 		render();
@@ -651,8 +669,12 @@ async function onKeypress(str, key) {
 			submenuSelection = 0;
 		} else if ((key.name === 'return' || str === ' ') && state.bluetoothDevices[submenuSelection]) {
 			const device = state.bluetoothDevices[submenuSelection];
+			if (!isSafeMac(device.mac)) {
+				setMessage('Unsafe bluetooth device identifier', 'error');
+				return;
+			}
 			const connected = state.bluetooth.connectedMacs.has(device.mac);
-			await run(`bluetoothctl ${connected ? 'disconnect' : 'connect'} ${device.mac}`);
+			await run(`bluetoothctl ${connected ? 'disconnect' : 'connect'} ${shellQuote(device.mac)}`);
 			await refreshState();
 		}
 		render();
