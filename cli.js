@@ -494,7 +494,7 @@ function openPowerMenu() {
 	currentSubmenu = {
 		title: 'Power actions',
 		items: [
-			{ label: 'Shut down', action: () => run('systemctl poweroff -i') },
+			{ label: 'Shut down', action: () => run('systemctl poweroff') },
 			{ label: 'Sleep', action: () => run('systemctl suspend') },
 			{ label: 'Restart', action: () => run('systemctl reboot') }
 		]
@@ -558,7 +558,10 @@ if [ -r "$psk_file" ]; then
 else
   psk=$(sudo cat "$psk_file" 2>/dev/null | sed -n 's/^Passphrase=//p' | head -n1)
 fi
-payload="WIFI:T:WPA;S:${network};P:${psk};;"
+escape_qr() {
+  printf '%s' "$1" | sed 's/\\\\/\\\\\\\\/g; s/;/\\\\;/g; s/:/\\\\:/g; s/,/\\\\,/g'
+}
+payload="WIFI:T:WPA;S:$(escape_qr "$network");P:$(escape_qr "$psk");;"
 echo "Network: $network"
 if command -v qrencode >/dev/null 2>&1; then
   qrencode -t ANSIUTF8 "$payload"
