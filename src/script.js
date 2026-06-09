@@ -335,58 +335,39 @@ const updateBatteryDetails = () => {
 		const batteryBtn = document.querySelector('button[data-target="battery-management"]');
 		if (!batteryBtn) return;
 
-		const spans = batteryBtn.querySelectorAll('span');
-		const percentSpan = spans[0];
-		const timeSpan = spans[1];
+		const percentSpan = batteryBtn.querySelector('#battery-percent');
+		const timeSpan = batteryBtn.querySelector('#battery-time');
 		const icon = batteryBtn.querySelector('i');
 
 		const status = match[1].trim();
 		const percent = parseInt(match[2]);
-		// Ignore acpi's timeRaw, make our own estimation
-		let customTimeEstimateStr = null;
+		const timeRaw = match[3];
 
-		try {
-			const logFile = path.join(__dirname, '..', 'battery-log.json');
-			if (fs.existsSync(logFile)) {
-				const logs = JSON.parse(fs.readFileSync(logFile, 'utf8'));
-				if (logs.length >= 3) {
-					const recent = logs.slice(-3);
-					const p1 = recent[0];
-					const p2 = recent[recent.length - 1];
-
-					if (p1.charging === p2.charging && status === (p2.charging ? 'Charging' : 'Discharging')) {
-						const deltaLvl = p2.level - p1.level;
-						const deltaTimeMs = p2.time - p1.time;
-
-						if (deltaTimeMs > 0 && deltaLvl !== 0) {
-							let msRemaining = 0;
-							if (!p2.charging && deltaLvl < 0) {
-								const msPerPercent = deltaTimeMs / Math.abs(deltaLvl);
-								msRemaining = msPerPercent * percent;
-							} else if (p2.charging && deltaLvl > 0) {
-								const msPerPercent = deltaTimeMs / deltaLvl;
-								msRemaining = msPerPercent * (100 - percent);
-							}
-
-							if (msRemaining > 0) {
-								const totalMinutes = Math.round(msRemaining / 60000);
-								const hrs = Math.floor(totalMinutes / 60);
-								const mins = totalMinutes % 60;
-								customTimeEstimateStr = `${hrs} h ${mins.toString().padStart(2, '0')} min`;
-							}
-						}
-					}
+		let timeEstimateStr = null;
+		if (timeRaw && status !== 'Full') {
+			const parts = timeRaw.split(':');
+			if (parts.length >= 2) {
+				const hrs = parseInt(parts[0], 10);
+				const mins = parseInt(parts[1], 10);
+				if (hrs > 0) {
+					timeEstimateStr = `${hrs} h ${mins.toString().padStart(2, '0')} min`;
+				} else {
+					timeEstimateStr = `${mins} min`;
 				}
 			}
-		} catch (e) {
-			console.log('Error calculating custom battery estimate:', e);
+		}
+
+		if (!timeEstimateStr) {
+			if (status === 'Charging') timeEstimateStr = 'Charging...';
+			else if (status === 'Full') timeEstimateStr = 'Fully charged';
+			else if (status === 'Unknown' || status === 'Not charging') timeEstimateStr = 'Plugged in';
 		}
 
 		if (percentSpan) percentSpan.textContent = `${percent}%`;
 
-		if (customTimeEstimateStr) {
+		if (timeEstimateStr) {
 			if (timeSpan) {
-				timeSpan.textContent = customTimeEstimateStr;
+				timeSpan.textContent = timeEstimateStr;
 				timeSpan.style.display = '';
 			}
 		} else {
