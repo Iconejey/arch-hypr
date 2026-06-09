@@ -13,9 +13,9 @@
 	"license": "ISC",
 	"author": "Nicolas Gouwy",
 	"type": "commonjs",
-	"main": "main.js",
+	"main": "cli.js",
 	"scripts": {
-		"start": "electron . --ozone-platform-hint=auto --disable-gpu",
+		"start": "node cli.js",
 		"link": "node link.js",
 		"drive-setup": "node drive-setup.js"
 	},
