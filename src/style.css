@@ -105,7 +105,7 @@ main {
 				appearance: none;
 				height: 6px;
 				border-radius: 3px;
-				background: linear-gradient(to right, #c3e88d var(--val, 50%), #333 var(--val, 50%));
+				background: linear-gradient(to right, #82aaff var(--val, 50%), #333 var(--val, 50%));
 				outline: none;
 				cursor: pointer;
 			}
@@ -116,7 +116,7 @@ main {
 				width: 16px;
 				height: 16px;
 				border-radius: 50%;
-				background: #c3e88d;
+				background: #82aaff;
 				cursor: pointer;
 			}
 
@@ -124,7 +124,7 @@ main {
 				width: 16px;
 				height: 16px;
 				border-radius: 50%;
-				background: #c3e88d;
+				background: #82aaff;
 				cursor: pointer;
 			}
 
@@ -182,7 +182,7 @@ main {
 				}
 
 				&.active {
-					background-color: #c3e88d;
+					background-color: #82aaff;
 					color: #191919;
 
 					& > i.btn:hover {
