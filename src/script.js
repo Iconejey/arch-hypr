@@ -349,16 +349,32 @@ document.onkeydown = e => {
 	} else if (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
 		if (e.key === 'ArrowUp') {
 			e.preventDefault();
-			exec('wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+');
+			const slider = document.querySelector('.volume-slider');
+			if (slider) {
+				slider.value = Math.min(100, parseInt(slider.value) + 5);
+				slider.dispatchEvent(new Event('input'));
+			}
 		} else if (e.key === 'ArrowDown') {
 			e.preventDefault();
-			exec('wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-');
+			const slider = document.querySelector('.volume-slider');
+			if (slider) {
+				slider.value = Math.max(0, parseInt(slider.value) - 5);
+				slider.dispatchEvent(new Event('input'));
+			}
 		} else if (e.key === 'ArrowRight') {
 			e.preventDefault();
-			exec('brightnessctl s 5%+');
+			const slider = document.querySelector('#brightness-slider');
+			if (slider) {
+				slider.value = Math.min(100, parseInt(slider.value) + 5);
+				slider.dispatchEvent(new Event('input'));
+			}
 		} else if (e.key === 'ArrowLeft') {
 			e.preventDefault();
-			exec('brightnessctl s 5%-');
+			const slider = document.querySelector('#brightness-slider');
+			if (slider) {
+				slider.value = Math.max(0, parseInt(slider.value) - 5);
+				slider.dispatchEvent(new Event('input'));
+			}
 		} else if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
 			// If user types a character and the input isn't focused, focus it
 			const searchInput = document.querySelector('#app-search-input');
@@ -918,9 +934,8 @@ if (brightnessSlider && brightnessLabel) {
 		require('child_process').exec(`brightnessctl s ${value}%`);
 	});
 
-	// initial and poll
+	// initial
 	updateBrightnessUI();
-	setInterval(updateBrightnessUI, 200);
 }
 
 // Volume controls
@@ -959,9 +974,8 @@ if (volumeSlider && volumeLabel) {
 		require('child_process').exec(`wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ ${value}%`);
 	});
 
-	// initial and poll
+	// initial
 	updateVolumeUI();
-	setInterval(updateVolumeUI, 200);
 }
 
 // --- App Search Integration ---
