@@ -13,7 +13,7 @@ function createWindow() {
 		frame: false,
 		transparent: true,
 		hasShadow: false,
-		resizable: true,
+		resizable: false,
 		webPreferences: {
 			nodeIntegration: true,
 			contextIsolation: false
