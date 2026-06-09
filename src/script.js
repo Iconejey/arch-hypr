@@ -2,6 +2,14 @@ const { exec } = require('child_process');
 
 // Visibility Tracking to save battery
 let isPanelVisible = true;
+
+window.addEventListener('focus', () => {
+	if (isPanelVisible) {
+		const searchInput = document.querySelector('#app-search-input');
+		if (searchInput) searchInput.focus();
+	}
+});
+
 try {
 	const STATE_FILE = '/tmp/arch-hypr-panel-state';
 	if (fs.existsSync(STATE_FILE)) {
@@ -388,56 +396,10 @@ function update_media() {
 setInterval(update_media, 1000);
 update_media();
 
-// App tabs behavior
-const app_views = $('#app-views');
-const app_views_container = $('#app-views-container');
-const app_tab_buttons = $$('#app-tabs button');
-
-const update_app_view_height = () => {
-	// Determine the height of the currently visible view
-	const active_index = Array.from(app_tab_buttons).findIndex(b => b.classList.contains('active'));
-	if (active_index !== -1 && app_views) {
-		const active_view = app_views.children[active_index];
-		app_views_container.style.height = active_view.offsetHeight + 'px';
-
-		// Update view opacity logic
-		Array.from(app_views.children).forEach((view, i) => {
-			view.classList.toggle('inactive-view', i !== active_index);
-		});
-	}
-};
-
-for (const button of app_tab_buttons) {
-	button.onclick = () => {
-		const index = button.dataset.view;
-		app_views.style.transform = `translateX(calc(-${index} * (var(--bar-width) + 16px)))`;
-		setTimeout(() => {
-			update_app_view_height();
-			// Wait for the animation to finish before focusing
-			if (index === '1') {
-				const searchInput = document.querySelector('#app-search-input');
-				if (searchInput) {
-					const onTransitionEnd = () => {
-						searchInput.focus();
-						app_views.removeEventListener('transitionend', onTransitionEnd);
-					};
-					app_views.addEventListener('transitionend', onTransitionEnd);
-				}
-			} else if (index === '0') {
-				const searchInput = document.querySelector('#app-search-input');
-				if (searchInput && searchInput.value !== '') {
-					searchInput.value = '';
-					searchInput.dispatchEvent(new Event('input'));
-				}
-			}
-		}, 20);
-	};
-}
-
 // Initial height setup
-update_app_view_height();
+update_wifi_view_height();
 
-// Escape key to close menu or Space to open search
+// Escape key to close menu
 document.onkeydown = e => {
 	if (e.key === 'Escape') {
 		if (toggled_class) {
@@ -446,21 +408,8 @@ document.onkeydown = e => {
 			for (const menu_only of $$('.menu-only')) menu_only.classList.add('hidden');
 			toggled_class = null;
 		}
-		const notifBtn = document.querySelector('#app-tabs button[data-view="0"]');
-		if (notifBtn && !notifBtn.classList.contains('active')) {
-			notifBtn.click();
-		}
 		if (document.activeElement.tagName === 'INPUT') {
 			document.activeElement.blur();
-		}
-	} else if (e.key === ' ' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
-		e.preventDefault();
-		const appSearchBtn = document.querySelector('#app-tabs button[data-view="1"]');
-		if (appSearchBtn && !appSearchBtn.classList.contains('active')) {
-			appSearchBtn.click();
-		} else if (appSearchBtn && appSearchBtn.classList.contains('active')) {
-			const appSearchInput = document.querySelector('#app-search-input');
-			if (appSearchInput) appSearchInput.focus();
 		}
 	}
 };
@@ -1215,15 +1164,10 @@ if (appSearchInput && appListContainer) {
 
 				appSearchInput.value = '';
 				renderApps();
-				// simulate escape to close the panel
-				document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+				// Close the electron app panel
+				exec('~/.local/bin/toggle-panel.sh');
 			};
 		});
-
-		// Trigger container height update when the number of rendered items changes
-		if (typeof update_app_view_height === 'function') {
-			update_app_view_height();
-		}
 	};
 
 	// Initialize on next tick so it doesn't block startup

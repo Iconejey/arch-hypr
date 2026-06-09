@@ -427,15 +427,13 @@ main {
 		}
 	}
 
-	& #wifi-views-container,
-	& #app-views-container {
+	& #wifi-views-container {
 		flex-shrink: 0;
 		overflow: hidden;
 		padding: 0;
 		background: transparent;
 
-		& #wifi-views,
-		& #app-views {
+		& #wifi-views {
 			display: flex;
 			transition: transform 0.3s ease;
 			width: max-content;
@@ -449,103 +447,36 @@ main {
 		}
 	}
 
-	#app-views-container {
-		& #notifications-view {
-			display: flex;
-			flex-direction: column;
-			gap: 16px;
+	& #app-search-view {
+		& .group {
+			align-items: center;
+			padding: 0 16px;
+			gap: 12px;
 
-			& .notification {
-				height: auto;
+			& input {
+				flex: 1;
+				background: transparent;
+				border: none;
+				outline: none;
+				color: inherit;
+				font-family: inherit;
+				font-size: 1rem;
 
-				& .group {
-					flex-direction: column;
-
-					& img {
-						width: 100%;
-						object-fit: cover;
-						transition: max-height 0.3s ease;
-						border-radius: 12px;
-					}
-
-					& .content {
-						display: flex;
-						flex-direction: column;
-						gap: 8px;
-						padding: 8px;
-						padding-bottom: 0px;
-
-						& .header {
-							display: inline-flex;
-							align-items: center;
-							justify-content: space-between;
-						}
-
-						& .time {
-							text-align: right;
-							font-size: 0.8rem;
-						}
-
-						& .progress {
-							height: 6px;
-							background-color: rgba(255, 255, 255, 0.1);
-							border-radius: 3px;
-							overflow: hidden;
-							margin-top: 8px;
-
-							& .progress-bar {
-								height: 100%;
-								background-color: #c3e88d;
-								border-radius: 3px;
-							}
-						}
-					}
-
-					& .actions {
-						display: flex;
-						gap: 8px;
-					}
+				&::placeholder {
+					color: rgba(198, 198, 198, 0.4);
 				}
 			}
 		}
+	}
 
-		& #app-search-view {
-			display: flex;
-			flex-direction: column;
-			gap: 16px;
+	& .app-list {
+		max-height: 480px;
+		height: auto;
 
-			& .search-box {
-				& .group {
-					align-items: center;
-					padding: 0 16px;
-					gap: 12px;
-
-					& input {
-						flex: 1;
-						background: transparent;
-						border: none;
-						outline: none;
-						color: inherit;
-						font-family: inherit;
-						font-size: 1rem;
-
-						&::placeholder {
-							color: rgba(198, 198, 198, 0.4);
-						}
-					}
-				}
-			}
-
-			& .app-list {
-				max-height: 480px;
-				height: auto;
-
-				& .group button img {
-					width: 24px;
-					height: 24px;
-					object-fit: cover;
-				}
-			}
+		& .group button img {
+			width: 24px;
+			height: 24px;
+			object-fit: cover;
 		}
 	}
 }

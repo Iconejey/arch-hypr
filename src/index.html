@@ -206,81 +206,16 @@
 					</div>
 				</div>
 
-				<!-- Views mode (Notifications, App Search) -->
-				<div class="line">
-					<div class="group panel multi-toggle" id="app-tabs">
-						<button class="active" data-view="0" title="Notifications">
-							<i>notifications</i>
-							<span>Notifications</span>
-						</button>
-
-						<button data-view="1" title="App search">
-							<i>search</i>
-							<span>App search</span>
-						</button>
+				<!-- App search -->
+				<div class="line search-box" id="app-search-view">
+					<div class="group panel">
+						<i>search</i>
+						<input type="text" id="app-search-input" placeholder="Search apps..." autocomplete="off" spellcheck="false" />
 					</div>
 				</div>
 
-				<!-- Views container -->
-				<div id="app-views-container">
-					<div id="app-views">
-						<!-- Notifications -->
-						<div id="notifications-view">
-							<div class="line notification">
-								<div class="group panel">
-									<img src="./notification.png" />
-									<div class="content">
-										<div class="header">
-											<span class="title">New message from Alice</span>
-											<span class="time small">10:34</span>
-										</div>
-										<span class="body small">Hey, are we still on for tonight?</span>
-										<div class="progress">
-											<div class="progress-bar" style="width: 50%"></div>
-										</div>
-									</div>
-									<div class="actions">
-										<button class="center">Action 1</button>
-										<button class="center">Action 2</button>
-									</div>
-								</div>
-							</div>
-
-							<div class="line notification">
-								<div class="group panel">
-									<img src="./notification.png" />
-									<div class="content">
-										<div class="header">
-											<span class="title">New message from Alice</span>
-											<span class="time small">10:34</span>
-										</div>
-										<span class="body small">Hey, are we still on for tonight?</span>
-										<div class="progress">
-											<div class="progress-bar" style="width: 50%"></div>
-										</div>
-									</div>
-									<div class="actions">
-										<button class="center">Action 1</button>
-										<button class="center">Action 2</button>
-									</div>
-								</div>
-							</div>
-						</div>
-
-						<!-- App search -->
-						<div class="inactive-view" id="app-search-view">
-							<div class="line search-box">
-								<div class="group panel">
-									<i>search</i>
-									<input type="text" id="app-search-input" placeholder="Search apps..." autocomplete="off" spellcheck="false" />
-								</div>
-							</div>
-
-							<div class="line list app-list">
-								<div class="group panel toggle-control" id="app-list-container"></div>
-							</div>
-						</div>
-					</div>
+				<div class="line list app-list">
+					<div class="group panel toggle-control" id="app-list-container"></div>
 				</div>
 			</div>
 		</main>
