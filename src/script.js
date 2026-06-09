@@ -346,6 +346,12 @@ document.onkeydown = e => {
 		if (document.activeElement.tagName === 'INPUT') {
 			document.activeElement.blur();
 		}
+	} else if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+		// If user types a character and the input isn't focused, focus it
+		const searchInput = document.querySelector('#app-search-input');
+		if (searchInput && document.activeElement !== searchInput) {
+			searchInput.focus();
+		}
 	}
 };
 
