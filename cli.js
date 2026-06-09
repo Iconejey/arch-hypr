@@ -54,6 +54,24 @@ function run(cmd) {
 	});
 }
 
+function runArgs(command, args = []) {
+	return new Promise(resolve => {
+		const child = spawn(command, args, { stdio: ['ignore', 'pipe', 'pipe'] });
+		let stdout = '';
+		let stderr = '';
+		child.stdout.on('data', d => (stdout += d.toString()));
+		child.stderr.on('data', d => (stderr += d.toString()));
+		child.on('close', code => {
+			resolve({
+				ok: code === 0,
+				stdout: stdout.trim(),
+				stderr: stderr.trim(),
+				error: code === 0 ? null : new Error(`${command} exited with ${code}`)
+			});
+		});
+	});
+}
+
 function pad(str, width) {
 	if (str.length >= width) return str.slice(0, width);
 	return str + ' '.repeat(width - str.length);
@@ -109,10 +127,6 @@ function parseStationStatus(stdout) {
 	return stdout.replace(/\x1b\[[0-9;]*m/g, '').match(/^\s*([a-zA-Z0-9_]+)\s+(connected|disconnected|connecting)/m);
 }
 
-function shellQuote(value) {
-	return `'${String(value).replace(/'/g, `'\\''`)}'`;
-}
-
 function isSafeMac(mac) {
 	return /^[A-F0-9:]{17}$/i.test(mac);
 }
@@ -133,7 +147,7 @@ function parseDesktopFile(filePath) {
 			}
 			if (!inDesktop) continue;
 			if (l.startsWith('Name=') && !name) name = l.slice(5).trim();
-			if (l.startsWith('Exec=')) execCmd = l.slice(5).replace(/%[a-zA-Z]/g, '').trim();
+			if (l.startsWith('Exec=')) execCmd = l.slice(5).replace(/%[a-zA-Z]+/g, '').trim();
 			if (l.startsWith('NoDisplay=') && l.slice(10).trim().toLowerCase() === 'true') noDisplay = true;
 		}
 		if (!name || !execCmd || noDisplay) return null;
@@ -173,8 +187,11 @@ function filteredApps() {
 
 function launchApp(app) {
 	if (!app) return;
-	const cmd = `gtk-launch "${app.desktop}" >/dev/null 2>&1 || (${app.exec}) >/dev/null 2>&1`;
-	const child = spawn('bash', ['-lc', cmd], { detached: true, stdio: 'ignore' });
+	if (!/^[a-zA-Z0-9._-]+$/.test(app.desktop)) {
+		setMessage('Unsafe desktop entry identifier', 'error');
+		return;
+	}
+	const child = spawn('gtk-launch', [app.desktop], { detached: true, stdio: 'ignore' });
 	child.unref();
 	process.stdout.write(COLORS.reset);
 	process.exit(0);
@@ -515,21 +532,21 @@ function openWifiMenu() {
 				label: 'Share current network QR',
 				action: () =>
 					withSuspendedUI(`
-ssid=$(iwctl station list | sed 's/\\x1b\\[[0-9;]*m//g' | awk '/connected/ {print $1; exit}')
-if [ -z "$ssid" ]; then
+station=$(iwctl station list | sed 's/\\x1b\\[[0-9;]*m//g' | awk '/connected/ {print $1; exit}')
+if [ -z "$station" ]; then
   echo "No connected wifi station found."
   exit 0
 fi
-case "$ssid" in
+case "$station" in
   (*[!a-zA-Z0-9_]*|'') echo "Unsafe wifi station identifier."; exit 1 ;;
 esac
-network=$(iwctl station "$ssid" show | sed 's/\\x1b\\[[0-9;]*m//g' | sed -n 's/^\\s*Connected network\\s\\+//p' | head -n1)
+network=$(iwctl station "$station" show | sed 's/\\x1b\\[[0-9;]*m//g' | sed -n 's/^\\s*Connected network\\s\\+//p' | head -n1)
 if [ -z "$network" ]; then
   echo "No connected network."
   exit 0
 fi
 case "$network" in
-  (*".."*|*"/"*|*"\\"*) echo "Unsafe network name."; exit 1 ;;
+  (*[![:alnum:]_. -]*|*".."*|*"/"*|*"\\"*) echo "Unsafe network name."; exit 1 ;;
 esac
 psk_file="/var/lib/iwd/${network}.psk"
 if [ -r "$psk_file" ]; then
@@ -654,7 +671,17 @@ async function onKeypress(str, key) {
 				setMessage('Unsafe wifi station identifier', 'error');
 				return;
 			}
-			await withSuspendedUI(`iwctl station ${shellQuote(state.wifi.device)} connect ${shellQuote(network.name)}`);
+			isBusy = true;
+			try {
+				process.stdin.setRawMode(false);
+				process.stdin.removeListener('keypress', onKeypress);
+				clearScreen();
+				spawnSync('iwctl', ['station', state.wifi.device, 'connect', network.name], { stdio: 'inherit' });
+				spawnSync('bash', ['-lc', 'echo; read -r -p "Press Enter to return..." _'], { stdio: 'inherit' });
+			} finally {
+				isBusy = false;
+				setupInput();
+			}
 			await refreshState();
 		}
 		render();
@@ -674,7 +701,7 @@ async function onKeypress(str, key) {
 				return;
 			}
 			const connected = state.bluetooth.connectedMacs.has(device.mac);
-			await run(`bluetoothctl ${connected ? 'disconnect' : 'connect'} ${shellQuote(device.mac)}`);
+			await runArgs('bluetoothctl', [connected ? 'disconnect' : 'connect', device.mac]);
 			await refreshState();
 		}
 		render();
