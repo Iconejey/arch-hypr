@@ -559,18 +559,34 @@ const updateWifiList = () => {
 	if (!wifiListContainer) return;
 
 	exec('iwctl station list', (err, stdout) => {
-		if (err || !stdout) return;
+		if (err || !stdout) {
+			wifiListContainer.innerHTML = '<div style="padding: 16px; text-align: center; opacity: 0.6; font-size: 0.9em;">No networks found</div>';
+			update_wifi_view_height?.();
+			return;
+		}
 		const pure = stdout.replace(/\x1b\[[0-9;]*m/g, '');
 		const match = pure.match(/^\s*([a-zA-Z0-9_]+)\s+(connected|disconnected|connecting)/m);
-		if (!match) return;
+		if (!match) {
+			wifiListContainer.innerHTML = '<div style="padding: 16px; text-align: center; opacity: 0.6; font-size: 0.9em;">No wifi device found</div>';
+			update_wifi_view_height?.();
+			return;
+		}
 
 		const device = match[1];
 
 		exec(`iwctl station ${device} get-networks`, (err2, stdout2) => {
-			if (err2 || !stdout2) return;
+			if (err2 || !stdout2) {
+				wifiListContainer.innerHTML = '<div style="padding: 16px; text-align: center; opacity: 0.6; font-size: 0.9em;">No networks found</div>';
+				update_wifi_view_height?.();
+				return;
+			}
 			const lines = stdout2.split('\n').map(l => l.replace(/\x1b\[[0-9;]*m/g, ''));
 			const hl = lines.find(l => l.includes('Network name'));
-			if (!hl) return;
+			if (!hl) {
+				wifiListContainer.innerHTML = '<div style="padding: 16px; text-align: center; opacity: 0.6; font-size: 0.9em;">No networks found</div>';
+				update_wifi_view_height?.();
+				return;
+			}
 
 			const ns = hl.indexOf('Network name');
 			const ss = hl.indexOf('Security');
@@ -627,6 +643,7 @@ const updateWifiList = () => {
 					</div>
 				`;
 			}
+			update_wifi_view_height?.();
 		});
 	});
 };
@@ -783,7 +800,10 @@ const updateBluetoothList = () => {
 	if (!btListContainer) return;
 
 	exec('bluetoothctl devices', (err, stdout) => {
-		if (err || !stdout) return;
+		if (err || !stdout) {
+			btListContainer.innerHTML = '<div style="padding: 16px; text-align: center; opacity: 0.6; font-size: 0.9em;">No Bluetooth devices found</div>';
+			return;
+		}
 
 		const lines = stdout.trim().split('\n');
 		const pureLines = lines.map(l => l.replace(/\x1b\[[0-9;]*m/g, '').trim()).filter(l => l.startsWith('Device'));
