@@ -131,6 +131,10 @@ function isSafeMac(mac) {
 	return /^[A-F0-9:]{17}$/i.test(mac);
 }
 
+function isSafeNetworkName(name) {
+	return typeof name === 'string' && name.length > 0 && !/[\x00-\x1f\x7f]/.test(name);
+}
+
 function parseDesktopFile(filePath) {
 	try {
 		const lines = fs.readFileSync(filePath, 'utf8').split('\n');
@@ -622,7 +626,7 @@ async function handleHomeEnter(homeItems) {
 }
 
 function isPrintable(str) {
-	return str && str.length === 1 && str >= ' ' && str !== '\x7f';
+	return typeof str === 'string' && str.length === 1 && str.charCodeAt(0) >= 32 && str.charCodeAt(0) !== 127;
 }
 
 async function onKeypress(str, key) {
@@ -669,6 +673,10 @@ async function onKeypress(str, key) {
 			const network = state.wifiNetworks[submenuSelection];
 			if (!/^[a-zA-Z0-9_]+$/.test(state.wifi.device || '')) {
 				setMessage('Unsafe wifi station identifier', 'error');
+				return;
+			}
+			if (!isSafeNetworkName(network.name)) {
+				setMessage('Unsafe wifi network name', 'error');
 				return;
 			}
 			isBusy = true;
