@@ -72,7 +72,7 @@ function setMessage(text, type = 'info') {
 async function withSuspendedUI(command) {
 	isBusy = true;
 	try {
-		process.stdin.setRawMode(false);
+		if (process.stdin.isTTY) process.stdin.setRawMode(false);
 		process.stdin.removeListener('keypress', onKeypress);
 		clearScreen();
 		spawnSync(
@@ -684,6 +684,10 @@ async function onKeypress(str, key) {
 }
 
 function setupInput() {
+	if (!process.stdin.isTTY) {
+		console.error('arch-hypr CLI requires an interactive TTY terminal.');
+		process.exit(1);
+	}
 	readline.emitKeypressEvents(process.stdin);
 	process.stdin.setRawMode(true);
 	process.stdin.on('keypress', onKeypress);
