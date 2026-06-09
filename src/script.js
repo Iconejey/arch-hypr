@@ -346,11 +346,25 @@ document.onkeydown = e => {
 		if (document.activeElement.tagName === 'INPUT') {
 			document.activeElement.blur();
 		}
-	} else if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
-		// If user types a character and the input isn't focused, focus it
-		const searchInput = document.querySelector('#app-search-input');
-		if (searchInput && document.activeElement !== searchInput) {
-			searchInput.focus();
+	} else if (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+		if (e.key === 'ArrowUp') {
+			e.preventDefault();
+			exec('wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+');
+		} else if (e.key === 'ArrowDown') {
+			e.preventDefault();
+			exec('wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-');
+		} else if (e.key === 'ArrowRight') {
+			e.preventDefault();
+			exec('brightnessctl s 5%+');
+		} else if (e.key === 'ArrowLeft') {
+			e.preventDefault();
+			exec('brightnessctl s 5%-');
+		} else if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+			// If user types a character and the input isn't focused, focus it
+			const searchInput = document.querySelector('#app-search-input');
+			if (searchInput && document.activeElement !== searchInput) {
+				searchInput.focus();
+			}
 		}
 	}
 };
