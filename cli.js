@@ -2,19 +2,8 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const readline = require('readline');
 const { exec, spawn, spawnSync } = require('child_process');
-
-const COLORS = {
-	reset: '\x1b[0m',
-	fg: '\x1b[38;5;252m',
-	dim: '\x1b[2m',
-	primaryBg: '\x1b[48;5;28m',
-	baseBg: '\x1b[48;5;238m',
-	progressBg: '\x1b[48;5;236m',
-	headerFg: '\x1b[38;5;119m',
-	errorFg: '\x1b[38;5;203m'
-};
+const blessed = require('neo-neo-blessed');
 
 const state = {
 	now: new Date(),
@@ -40,6 +29,92 @@ let messageType = 'info';
 let isBusy = false;
 
 const appDirs = ['/usr/share/applications/', path.join(os.homedir(), '.local/share/applications/')];
+
+const screen = blessed.screen({
+	smartCSR: true,
+	title: 'arch-hypr cli',
+	fullUnicode: true,
+	warnings: true
+});
+
+const headerBox = blessed.box({
+	parent: screen,
+	top: 0,
+	left: 0,
+	width: '100%',
+	height: 3,
+	tags: true
+});
+
+const mainList = blessed.list({
+	parent: screen,
+	top: 3,
+	left: 0,
+	width: '100%',
+	height: '100%-4',
+	keys: true,
+	vi: true,
+	tags: true,
+	style: {
+		selected: {
+			bg: '#005f00',
+			fg: 'white'
+		},
+		item: {
+			fg: '#eeeeee'
+		}
+	}
+});
+
+const messageBox = blessed.box({
+	parent: screen,
+	bottom: 0,
+	left: 0,
+	width: '100%',
+	height: 1,
+	tags: true,
+	content: ''
+});
+
+function setMessage(text, type = 'info') {
+	message = text;
+	messageType = type;
+	render();
+}
+
+async function withSuspendedUI(command) {
+	isBusy = true;
+	try {
+		screen.leave();
+		spawnSync(
+			'bash',
+			[
+				'-lc',
+				`${command}
+echo
+read -r -p "Press Enter to return..." _`
+			],
+			{ stdio: 'inherit' }
+		);
+	} finally {
+		isBusy = false;
+		screen.enter();
+		render();
+	}
+}
+
+function progressLine(content, progress) {
+	const width = Math.max(20, (screen.width || 100) - 4);
+	const body = content.length >= width ? content.slice(0, width) : content + ' '.repeat(width - content.length);
+
+	if (typeof progress !== 'number') return `{white-fg}${body}{/}`;
+
+	const clamped = Math.max(0, Math.min(1, progress));
+	const split = Math.round(width * clamped);
+	const done = body.slice(0, split);
+	const todo = body.slice(split);
+	return `{#444-bg}{white-fg}${done}{/}{#222-bg}{white-fg}${todo}{/}`;
+}
 
 function run(cmd) {
 	return new Promise(resolve => {
@@ -72,57 +147,6 @@ function runArgs(command, args = []) {
 	});
 }
 
-function pad(str, width) {
-	if (str.length >= width) return str.slice(0, width);
-	return str + ' '.repeat(width - str.length);
-}
-
-function clearScreen() {
-	process.stdout.write('\x1b[2J\x1b[H');
-}
-
-function setMessage(text, type = 'info') {
-	message = text;
-	messageType = type;
-	render();
-}
-
-async function withSuspendedUI(command) {
-	isBusy = true;
-	try {
-		if (process.stdin.isTTY) process.stdin.setRawMode(false);
-		process.stdin.removeListener('keypress', onKeypress);
-		clearScreen();
-		spawnSync(
-			'bash',
-			[
-				'-lc',
-				`${command}
-echo
-read -r -p "Press Enter to return..." _`
-			],
-			{ stdio: 'inherit' }
-		);
-	} finally {
-		isBusy = false;
-		setupInput();
-		render();
-	}
-}
-
-function progressLine(content, progress, selected) {
-	const width = Math.max(20, (process.stdout.columns || 100) - 4);
-	const body = pad(content, width);
-	if (selected) return `${COLORS.primaryBg}${COLORS.fg}${body}${COLORS.reset}`;
-	if (typeof progress !== 'number') return `${COLORS.baseBg}${COLORS.fg}${body}${COLORS.reset}`;
-
-	const clamped = Math.max(0, Math.min(1, progress));
-	const split = Math.round(width * clamped);
-	const done = body.slice(0, split);
-	const todo = body.slice(split);
-	return `${COLORS.baseBg}${COLORS.fg}${done}${COLORS.progressBg}${COLORS.fg}${todo}${COLORS.reset}`;
-}
-
 function parseStationStatus(stdout) {
 	return stdout.replace(/\x1b\[[0-9;]*m/g, '').match(/^\s*([a-zA-Z0-9_]+)\s+(connected|disconnected|connecting)/m);
 }
@@ -151,7 +175,11 @@ function parseDesktopFile(filePath) {
 			}
 			if (!inDesktop) continue;
 			if (l.startsWith('Name=') && !name) name = l.slice(5).trim();
-			if (l.startsWith('Exec=')) execCmd = l.slice(5).replace(/%[a-zA-Z]+/g, '').trim();
+			if (l.startsWith('Exec='))
+				execCmd = l
+					.slice(5)
+					.replace(/%[a-zA-Z]+/g, '')
+					.trim();
 			if (l.startsWith('NoDisplay=') && l.slice(10).trim().toLowerCase() === 'true') noDisplay = true;
 		}
 		if (!name || !execCmd || noDisplay) return null;
@@ -197,15 +225,7 @@ function launchApp(app) {
 	}
 	const child = spawn('gtk-launch', [app.desktop], { detached: true, stdio: 'ignore' });
 	child.unref();
-	process.stdout.write(COLORS.reset);
-	process.exit(0);
-}
-
-async function updateBattery() {
-	const res = await run('acpi -b');
-	if (!res.ok || !res.stdout) return;
-	const match = res.stdout.match(/Battery \d+: ([a-zA-Z\s]+), (\d+)%(?:, ([\d:]+))?/);
-	if (!match) return;
+	screen.destroy();
 	state.battery.status = match[1].trim();
 	state.battery.percent = parseInt(match[2], 10);
 	state.battery.time = match[3] || 'N/A';
@@ -353,38 +373,58 @@ function adjustVolume(delta) {
 	run(cmd).then(updateVolume).then(render);
 }
 
+let homeItems = [];
+let submenuItems = [];
+
+function render() {
+	if (mode === 'home') renderHome();
+	else if (mode === 'submenu') renderSubmenu();
+	else if (mode === 'wifi-list') renderWifiList();
+	else if (mode === 'bluetooth-list') renderBluetoothList();
+	else if (mode === 'app-search') renderAppSearch();
+
+	if (message) {
+		messageBox.content = messageType === 'error' ? `{#ff5f5f-fg}${message}{/}` : `{gray-fg}${message}{/}`;
+	} else {
+		messageBox.content = '';
+	}
+	screen.render();
+}
+
 function renderHome() {
-	const lines = [];
+	headerBox.content = '{#87ff5f-fg}arch-hypr cli{/}\n{gray-fg}↑↓ select · Enter/Space open · Type to search apps · Esc exit{/}';
 	const time = state.now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 	const date = state.now.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
-	lines.push({
+	homeItems = [];
+
+	homeItems.push({
 		label: `Clock & date  ${time}  ${date}`,
 		progress: null,
 		onEnter: openPowerMenu
 	});
-	lines.push({
+	homeItems.push({
 		label: `Battery  ${state.battery.percent ?? '--'}%  ${state.battery.time}`,
 		progress: typeof state.battery.percent === 'number' ? state.battery.percent / 100 : 0,
 		onEnter: openBatteryMenu
 	});
-	lines.push({
+	homeItems.push({
 		label: `Wifi  ${state.wifi.ssid}${state.wifi.stars ? `  ${state.wifi.stars}` : ''}`,
 		progress: null,
 		onEnter: openWifiMenu
 	});
-	lines.push({
+	homeItems.push({
 		label: `Bluetooth  ${state.bluetooth.connectedNames.length ? state.bluetooth.connectedNames.join(', ') : 'No device'}`,
 		progress: null,
 		onEnter: openBluetoothMenu
 	});
-	lines.push({
+	homeItems.push({
 		label: `Brightness  ${state.brightness.percent}%`,
 		progress: state.brightness.percent / 100,
 		onLeft: () => adjustBrightness(-1),
 		onRight: () => adjustBrightness(1),
 		onEnter: openDisplayMenu
 	});
-	lines.push({
+	homeItems.push({
 		label: `Volume  ${state.volume.percent}%${state.volume.muted ? ' (muted)' : ''}`,
 		progress: state.volume.percent / 100,
 		onLeft: () => adjustVolume(-1),
@@ -392,7 +432,7 @@ function renderHome() {
 		onEnter: openAudioMenu
 	});
 	if (state.media.playing) {
-		lines.push({
+		homeItems.push({
 			label: `Media  ${state.media.title}${state.media.artist ? ` - ${state.media.artist}` : ''}`,
 			progress: state.media.progress,
 			onLeft: () => run('playerctl previous'),
@@ -401,96 +441,50 @@ function renderHome() {
 		});
 	}
 
-	const max = lines.length - 1;
-	if (homeSelection > max) homeSelection = max;
-
-	process.stdout.write(`${COLORS.headerFg}arch-hypr cli${COLORS.reset}\n`);
-	process.stdout.write(`${COLORS.dim}↑↓ select · Enter/Space open · Type to search apps · Esc exit${COLORS.reset}\n\n`);
-	lines.forEach((line, index) => {
-		process.stdout.write(progressLine(line.label, line.progress, index === homeSelection) + '\n');
-	});
-
-	if (message) {
-		const color = messageType === 'error' ? COLORS.errorFg : COLORS.dim;
-		process.stdout.write(`\n${color}${message}${COLORS.reset}\n`);
-	}
-	return lines;
+	mainList.setItems(homeItems.map(item => progressLine(item.label, item.progress)));
 }
 
 function renderSubmenu() {
-	process.stdout.write(`${COLORS.headerFg}${currentSubmenu.title}${COLORS.reset}\n`);
-	process.stdout.write(`${COLORS.dim}↑↓ select · Enter/Space run · Esc back${COLORS.reset}\n\n`);
-	currentSubmenu.items.forEach((item, index) => {
-		const prefix = index === submenuSelection ? '> ' : '  ';
-		const color = index === submenuSelection ? COLORS.headerFg : COLORS.fg;
-		process.stdout.write(`${color}${prefix}${item.label}${COLORS.reset}\n`);
-	});
-	if (message) {
-		const color = messageType === 'error' ? COLORS.errorFg : COLORS.dim;
-		process.stdout.write(`\n${color}${message}${COLORS.reset}\n`);
-	}
+	headerBox.content = `{#87ff5f-fg}${currentSubmenu.title}{/}\n{gray-fg}↑↓ select · Enter/Space run · Esc back{/}`;
+	submenuItems = currentSubmenu.items;
+	mainList.setItems(submenuItems.map(item => item.label));
 }
 
 function renderWifiList() {
-	process.stdout.write(`${COLORS.headerFg}Wifi networks${COLORS.reset}\n`);
-	process.stdout.write(`${COLORS.dim}↑↓ select · Enter connect · Esc back${COLORS.reset}\n\n`);
+	headerBox.content = '{#87ff5f-fg}Wifi networks{/}\n{gray-fg}↑↓ select · Enter connect · Esc back{/}';
 	if (!state.wifiNetworks.length) {
-		process.stdout.write(`${COLORS.dim}No network found${COLORS.reset}\n`);
-		return;
+		mainList.setItems(['{gray-fg}No network found{/}']);
+	} else {
+		mainList.setItems(state.wifiNetworks.map(net => `${net.name}  ${net.stars}`));
 	}
-	state.wifiNetworks.forEach((net, index) => {
-		const prefix = index === submenuSelection ? '> ' : '  ';
-		const color = index === submenuSelection ? COLORS.headerFg : COLORS.fg;
-		process.stdout.write(`${color}${prefix}${net.name}  ${net.stars}${COLORS.reset}\n`);
-	});
 }
 
 function renderBluetoothList() {
-	process.stdout.write(`${COLORS.headerFg}Bluetooth devices${COLORS.reset}\n`);
-	process.stdout.write(`${COLORS.dim}↑↓ select · Enter connect/disconnect · Esc back${COLORS.reset}\n\n`);
+	headerBox.content = '{#87ff5f-fg}Bluetooth devices{/}\n{gray-fg}↑↓ select · Enter connect/disconnect · Esc back{/}';
 	if (!state.bluetoothDevices.length) {
-		process.stdout.write(`${COLORS.dim}No Bluetooth devices found${COLORS.reset}\n`);
-		return;
+		mainList.setItems(['{gray-fg}No Bluetooth devices found{/}']);
+	} else {
+		mainList.setItems(
+			state.bluetoothDevices.map(device => {
+				const status = state.bluetooth.connectedMacs.has(device.mac) ? 'connected' : 'disconnected';
+				return `${device.name} (${status})`;
+			})
+		);
 	}
-	state.bluetoothDevices.forEach((device, index) => {
-		const prefix = index === submenuSelection ? '> ' : '  ';
-		const status = state.bluetooth.connectedMacs.has(device.mac) ? 'connected' : 'disconnected';
-		const color = index === submenuSelection ? COLORS.headerFg : COLORS.fg;
-		process.stdout.write(`${color}${prefix}${device.name} (${status})${COLORS.reset}\n`);
-	});
 }
 
 function renderAppSearch() {
+	headerBox.content = `{#87ff5f-fg}App search{/}\n{gray-fg}Type to filter · ↑↓ select · Enter launch+close · Esc cancel\nQuery: ${appSearchQuery}{/}`;
 	const apps = filteredApps();
-	if (appSearchSelection >= apps.length) appSearchSelection = Math.max(0, apps.length - 1);
-	process.stdout.write(`${COLORS.headerFg}App search${COLORS.reset}\n`);
-	process.stdout.write(`${COLORS.dim}Type to filter · ↑↓ select · Enter launch+close · Esc cancel${COLORS.reset}\n\n`);
-	process.stdout.write(`${COLORS.fg}Query: ${appSearchQuery}${COLORS.reset}\n\n`);
 	if (!apps.length) {
-		process.stdout.write(`${COLORS.dim}No app found${COLORS.reset}\n`);
-		return apps;
+		mainList.setItems(['{gray-fg}No app found{/}']);
+	} else {
+		mainList.setItems(apps.slice(0, 12).map(app => app.name));
 	}
-	for (let i = 0; i < Math.min(12, apps.length); i++) {
-		const app = apps[i];
-		const prefix = i === appSearchSelection ? '> ' : '  ';
-		const color = i === appSearchSelection ? COLORS.headerFg : COLORS.fg;
-		process.stdout.write(`${color}${prefix}${app.name}${COLORS.reset}\n`);
-	}
-	return apps;
-}
-
-function render() {
-	clearScreen();
-	if (mode === 'home') renderHome();
-	else if (mode === 'submenu') renderSubmenu();
-	else if (mode === 'wifi-list') renderWifiList();
-	else if (mode === 'bluetooth-list') renderBluetoothList();
-	else if (mode === 'app-search') renderAppSearch();
 }
 
 function openPowerMenu() {
 	mode = 'submenu';
-	submenuSelection = 0;
 	currentSubmenu = {
 		title: 'Power actions',
 		items: [
@@ -499,11 +493,11 @@ function openPowerMenu() {
 			{ label: 'Restart', action: () => run('systemctl reboot') }
 		]
 	};
+	mainList.select(0);
 }
 
 function openBatteryMenu() {
 	mode = 'submenu';
-	submenuSelection = 0;
 	currentSubmenu = {
 		title: 'Battery power profile',
 		items: [
@@ -512,11 +506,11 @@ function openBatteryMenu() {
 			{ label: 'Performance', action: () => run('powerprofilesctl set performance') }
 		]
 	};
+	mainList.select(0);
 }
 
 function openWifiMenu() {
 	mode = 'submenu';
-	submenuSelection = 0;
 	currentSubmenu = {
 		title: 'Wifi actions',
 		items: [
@@ -525,7 +519,7 @@ function openWifiMenu() {
 				action: async () => {
 					await updateWifiNetworks();
 					mode = 'wifi-list';
-					submenuSelection = 0;
+					mainList.select(0);
 				}
 			},
 			{
@@ -573,11 +567,11 @@ fi
 			}
 		]
 	};
+	mainList.select(0);
 }
 
 function openBluetoothMenu() {
 	mode = 'submenu';
-	submenuSelection = 0;
 	currentSubmenu = {
 		title: 'Bluetooth actions',
 		items: [
@@ -586,7 +580,7 @@ function openBluetoothMenu() {
 				action: async () => {
 					await updateBluetooth();
 					mode = 'bluetooth-list';
-					submenuSelection = 0;
+					mainList.select(0);
 				}
 			},
 			{
@@ -595,11 +589,11 @@ function openBluetoothMenu() {
 			}
 		]
 	};
+	mainList.select(0);
 }
 
 function openDisplayMenu() {
 	mode = 'submenu';
-	submenuSelection = 0;
 	currentSubmenu = {
 		title: 'Brightness actions',
 		items: [
@@ -607,11 +601,11 @@ function openDisplayMenu() {
 			{ label: 'Decrease -5%', action: () => run('brightnessctl -e4 -n2 set 5%-') }
 		]
 	};
+	mainList.select(0);
 }
 
 function openAudioMenu() {
 	mode = 'submenu';
-	submenuSelection = 0;
 	currentSubmenu = {
 		title: 'Volume actions',
 		items: [
@@ -620,60 +614,49 @@ function openAudioMenu() {
 			{ label: 'Toggle mute', action: () => run('wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle') }
 		]
 	};
-}
-
-async function handleHomeEnter(homeItems) {
-	const item = homeItems[homeSelection];
-	if (!item) return;
-	if (item.onEnter) await item.onEnter();
+	mainList.select(0);
 }
 
 function isPrintable(str) {
 	return typeof str === 'string' && str.length === 1 && str.charCodeAt(0) >= 32 && str.charCodeAt(0) !== 127;
 }
 
-async function onKeypress(str, key) {
+screen.on('keypress', async (ch, key) => {
 	if (isBusy) return;
 	if (key.ctrl && key.name === 'c') process.exit(0);
 
 	if (mode === 'home') {
-		const items = renderHome();
-		if (key.name === 'up') homeSelection = Math.max(0, homeSelection - 1);
-		else if (key.name === 'down') homeSelection = Math.min(items.length - 1, homeSelection + 1);
-		else if (key.name === 'left') items[homeSelection]?.onLeft?.();
-		else if (key.name === 'right') items[homeSelection]?.onRight?.();
-		else if (key.name === 'return' || str === ' ') await handleHomeEnter(items);
-		else if (key.name === 'escape') process.exit(0);
-		else if (isPrintable(str)) {
+		if (key.name === 'escape') process.exit(0);
+		else if (key.name === 'left') homeItems[mainList.selected]?.onLeft?.();
+		else if (key.name === 'right') homeItems[mainList.selected]?.onRight?.();
+		else if (key.name === 'return' || key.name === 'space') {
+			const onEnter = homeItems[mainList.selected]?.onEnter;
+			if (onEnter) await onEnter();
+			render();
+		} else if (ch && isPrintable(ch) && key.name !== 'up' && key.name !== 'down' && key.name !== 'return' && key.name !== 'space') {
 			mode = 'app-search';
-			appSearchQuery = str;
-			appSearchSelection = 0;
+			appSearchQuery = ch;
+			mainList.select(0);
+			render();
 		}
-		render();
-		return;
-	}
-
-	if (mode === 'submenu') {
-		if (key.name === 'up') submenuSelection = Math.max(0, submenuSelection - 1);
-		else if (key.name === 'down') submenuSelection = Math.min(currentSubmenu.items.length - 1, submenuSelection + 1);
-		else if (key.name === 'escape') mode = 'home';
-		else if (key.name === 'return' || str === ' ') {
-			const action = currentSubmenu.items[submenuSelection]?.action;
+	} else if (mode === 'submenu') {
+		if (key.name === 'escape') {
+			mode = 'home';
+			mainList.select(0);
+			render();
+		} else if (key.name === 'return' || key.name === 'space') {
+			const action = submenuItems[mainList.selected]?.action;
 			if (action) await action();
 			await refreshState();
+			render();
 		}
-		render();
-		return;
-	}
-
-	if (mode === 'wifi-list') {
-		if (key.name === 'up') submenuSelection = Math.max(0, submenuSelection - 1);
-		else if (key.name === 'down') submenuSelection = Math.min(state.wifiNetworks.length - 1, submenuSelection + 1);
-		else if (key.name === 'escape') {
+	} else if (mode === 'wifi-list') {
+		if (key.name === 'escape') {
 			mode = 'submenu';
-			submenuSelection = 0;
-		} else if ((key.name === 'return' || str === ' ') && state.wifiNetworks[submenuSelection]) {
-			const network = state.wifiNetworks[submenuSelection];
+			mainList.select(0);
+			render();
+		} else if ((key.name === 'return' || key.name === 'space') && state.wifiNetworks.length) {
+			const network = state.wifiNetworks[mainList.selected];
 			if (!/^[a-zA-Z0-9_]+$/.test(state.wifi.device || '')) {
 				setMessage('Unsafe wifi station identifier', 'error');
 				return;
@@ -684,29 +667,23 @@ async function onKeypress(str, key) {
 			}
 			isBusy = true;
 			try {
-				process.stdin.setRawMode(false);
-				process.stdin.removeListener('keypress', onKeypress);
-				clearScreen();
+				screen.leave();
 				spawnSync('iwctl', ['station', state.wifi.device, 'connect', network.name], { stdio: 'inherit' });
 				spawnSync('bash', ['-lc', 'echo; read -r -p "Press Enter to return..." _'], { stdio: 'inherit' });
 			} finally {
 				isBusy = false;
-				setupInput();
+				screen.enter();
 			}
 			await refreshState();
+			render();
 		}
-		render();
-		return;
-	}
-
-	if (mode === 'bluetooth-list') {
-		if (key.name === 'up') submenuSelection = Math.max(0, submenuSelection - 1);
-		else if (key.name === 'down') submenuSelection = Math.min(state.bluetoothDevices.length - 1, submenuSelection + 1);
-		else if (key.name === 'escape') {
+	} else if (mode === 'bluetooth-list') {
+		if (key.name === 'escape') {
 			mode = 'submenu';
-			submenuSelection = 0;
-		} else if ((key.name === 'return' || str === ' ') && state.bluetoothDevices[submenuSelection]) {
-			const device = state.bluetoothDevices[submenuSelection];
+			mainList.select(0);
+			render();
+		} else if ((key.name === 'return' || key.name === 'space') && state.bluetoothDevices.length) {
+			const device = state.bluetoothDevices[mainList.selected];
 			if (!isSafeMac(device.mac)) {
 				setMessage('Unsafe bluetooth device identifier', 'error');
 				return;
@@ -714,60 +691,44 @@ async function onKeypress(str, key) {
 			const connected = state.bluetooth.connectedMacs.has(device.mac);
 			await runArgs('bluetoothctl', [connected ? 'disconnect' : 'connect', device.mac]);
 			await refreshState();
+			render();
 		}
-		render();
-		return;
-	}
-
-	if (mode === 'app-search') {
-		const apps = filteredApps();
+	} else if (mode === 'app-search') {
 		if (key.name === 'escape') {
 			mode = 'home';
 			appSearchQuery = '';
-			appSearchSelection = 0;
+			mainList.select(0);
+			render();
 		} else if (key.name === 'backspace') {
 			appSearchQuery = appSearchQuery.slice(0, -1);
-			appSearchSelection = 0;
+			mainList.select(0);
 			if (!appSearchQuery) mode = 'home';
-		} else if (key.name === 'up') {
-			appSearchSelection = Math.max(0, appSearchSelection - 1);
-		} else if (key.name === 'down') {
-			appSearchSelection = Math.min(Math.max(0, apps.length - 1), appSearchSelection + 1);
+			render();
 		} else if (key.name === 'return') {
-			launchApp(apps[appSearchSelection]);
-		} else if (isPrintable(str)) {
-			appSearchQuery += str;
-			appSearchSelection = 0;
+			const apps = filteredApps();
+			if (apps.length) {
+				screen.leave();
+				launchApp(apps[mainList.selected]);
+			}
+		} else if (ch && isPrintable(ch) && key.name !== 'up' && key.name !== 'down' && key.name !== 'return' && key.name !== 'space' && key.name !== 'escape' && key.name !== 'backspace') {
+			appSearchQuery += ch;
+			mainList.select(0);
+			render();
 		}
-		render();
 	}
-}
-
-function setupInput() {
-	if (!process.stdin.isTTY) {
-		console.error('arch-hypr CLI requires an interactive TTY terminal.');
-		process.exit(1);
-	}
-	readline.emitKeypressEvents(process.stdin);
-	process.stdin.setRawMode(true);
-	process.stdin.on('keypress', onKeypress);
-}
-
-process.on('exit', () => {
-	process.stdout.write(COLORS.reset);
 });
 
-process.on('SIGINT', () => process.exit(0));
-process.stdout.on('resize', render);
+mainList.focus();
 
 loadApps();
-setupInput();
 render();
 refreshState();
+
 setInterval(() => {
 	state.now = new Date();
 	if (mode === 'home') render();
 }, 1000);
+
 setInterval(() => {
 	refreshState().catch(() => setMessage('Refresh failed', 'error'));
 }, 5000);
