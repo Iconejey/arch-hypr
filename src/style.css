@@ -273,39 +273,6 @@ main {
 			margin-top: -16px;
 		}
 
-		&#battery-graph-line {
-			height: 100px;
-			transition: height 0.3s ease;
-
-			& #battery-graph {
-				flex-direction: column;
-				padding: 16px;
-				gap: 4px;
-				position: relative;
-
-				& #hover-info {
-					display: block;
-					height: 0;
-					opacity: 0;
-					font-size: 0.9rem;
-					overflow: hidden;
-					transition:
-						height 0.3s ease,
-						margin-top 0.3s ease,
-						opacity 0.3s ease;
-				}
-			}
-
-			&.hovered {
-				height: calc(100px + 0.9rem);
-
-				& #battery-graph #hover-info {
-					height: 0.9rem;
-					opacity: 0.6;
-				}
-			}
-		}
-
 		&#media {
 			flex-direction: column;
 			height: 200px;
