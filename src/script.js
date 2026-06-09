@@ -1,35 +1,64 @@
 const { exec } = require('child_process');
+const { ipcRenderer } = require('electron');
 
 // Visibility Tracking to save battery
 let isPanelVisible = true;
-
-window.addEventListener('focus', () => {
-	if (isPanelVisible) {
-		const searchInput = document.querySelector('#app-search-input');
-		if (searchInput) searchInput.focus();
-	}
-});
 
 try {
 	const STATE_FILE = '/tmp/arch-hypr-panel-state';
 	if (fs.existsSync(STATE_FILE)) {
 		isPanelVisible = fs.readFileSync(STATE_FILE, 'utf8').trim() === 'visible';
 	}
-
-	fs.watchFile(STATE_FILE, { interval: 100 }, () => {
-		try {
-			isPanelVisible = fs.readFileSync(STATE_FILE, 'utf8').trim() === 'visible';
-			if (isPanelVisible) {
-				// Instantly update everything when panel slides in!
-				if (typeof updateBatteryDetails === 'function') updateBatteryDetails();
-				if (typeof updateWifiStatus === 'function') updateWifiStatus();
-				if (typeof updateBluetoothStatus === 'function') updateBluetoothStatus();
-				if (typeof updateBrightnessUI === 'function') updateBrightnessUI();
-				if (typeof updateVolumeUI === 'function') updateVolumeUI();
-			}
-		} catch (e) {}
-	});
 } catch (e) {}
+
+window.addEventListener('focus', () => {
+	const searchInput = document.querySelector('#app-search-input');
+	if (searchInput) searchInput.focus();
+});
+
+ipcRenderer.on('panel-visible', () => {
+	if (!isPanelVisible) {
+		isPanelVisible = true;
+		window.dispatchEvent(new Event('panelVisible'));
+	}
+});
+
+ipcRenderer.on('panel-hidden', () => {
+	if (isPanelVisible) {
+		isPanelVisible = false;
+		window.dispatchEvent(new Event('panelHidden'));
+	}
+});
+
+window.addEventListener('panelVisible', () => {
+	// Instantly update everything when panel slides in!
+	updateBatteryDetails?.();
+	updateWifiStatus?.();
+	updateBluetoothStatus?.();
+	updateBrightnessUI?.();
+	updateVolumeUI?.();
+});
+
+window.addEventListener('panelHidden', () => {
+	if (toggled_class) {
+		for (const dimmed of document.querySelectorAll('.dim')) dimmed.classList.remove('dim');
+		for (const dedicated of document.querySelectorAll('.line.dedicated')) dedicated.classList.add('hidden');
+		for (const menu_only of document.querySelectorAll('.menu-only')) menu_only.classList.add('hidden');
+		toggled_class = null;
+	}
+
+	const firstWifiViewBtn = document.querySelector('#wifi-tabs button[data-view="0"]');
+	if (firstWifiViewBtn && !firstWifiViewBtn.classList.contains('active')) {
+		firstWifiViewBtn.click();
+	}
+
+	const mediaContainer = document.querySelector('#media');
+	if (mediaContainer) mediaContainer.classList.remove('album');
+
+	if (document.activeElement.tagName === 'INPUT') {
+		document.activeElement.blur();
+	}
+});
 
 // Utils
 function $(selector) {
@@ -144,10 +173,7 @@ for (const button of wifi_tab_buttons) {
 
 		// If scanner logic is defined, trigger it based on the scan view index (1)
 		toggleScanner?.(index === '1');
-
-		if (typeof toggleShareQR !== 'undefined') {
-			toggleShareQR(index === '2');
-		}
+		toggleShareQR?.(index === '2');
 	};
 }
 
@@ -310,6 +336,13 @@ document.onkeydown = e => {
 			for (const menu_only of $$('.menu-only')) menu_only.classList.add('hidden');
 			toggled_class = null;
 		}
+
+		const searchInput = document.querySelector('#app-search-input');
+		if (searchInput && searchInput.value !== '') {
+			searchInput.value = '';
+			searchInput.dispatchEvent(new Event('input'));
+		}
+
 		if (document.activeElement.tagName === 'INPUT') {
 			document.activeElement.blur();
 		}
@@ -1052,6 +1085,13 @@ if (appSearchInput && appListContainer) {
 			};
 		});
 	};
+
+	window.addEventListener('panelHidden', () => {
+		if (appSearchInput.value !== '') {
+			appSearchInput.value = '';
+			renderApps();
+		}
+	});
 
 	// Initialize on next tick so it doesn't block startup
 	setTimeout(() => {

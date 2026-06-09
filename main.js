@@ -23,7 +23,17 @@ function createWindow() {
 	win.loadFile('src/index.html');
 }
 
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+	createWindow();
+
+	process.on('SIGUSR1', () => {
+		BrowserWindow.getAllWindows().forEach(w => w.webContents.send('panel-visible'));
+	});
+
+	process.on('SIGUSR2', () => {
+		BrowserWindow.getAllWindows().forEach(w => w.webContents.send('panel-hidden'));
+	});
+});
 
 app.on('window-all-closed', () => {
 	if (process.platform !== 'darwin') {

@@ -83,8 +83,10 @@ if [ "$X_POS" -lt "0" ]; then
     # Currently hidden -> Slide in to 0
     hyprctl --batch "dispatch movewindowpixel exact 0 0,title:^(arch-hypr-panel)$ ; dispatch focuswindow title:^(arch-hypr-panel)$ ; $(get_reserved_commands 390)" >/dev/null
     echo "visible" > /tmp/arch-hypr-panel-state
+    kill -USR1 $PANEL_PID
 else
     # Currently visible -> Slide out to -390
     hyprctl --batch "dispatch movewindowpixel exact -390 0,title:^(arch-hypr-panel)$ ; $(get_reserved_commands 0)" >/dev/null
     echo "hidden" > /tmp/arch-hypr-panel-state
+    kill -USR2 $PANEL_PID
 fi
