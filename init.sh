@@ -144,12 +144,6 @@ if [[ $run_drive =~ ^[Yy]$ ]]; then
     npm run drive-setup
 fi
 
-echo -en "\n${YELLOW}Do you want to scan a WiFi QR code to connect to a network now? (y/N) ${NC}"
-read run_qr
-if [[ $run_qr =~ ^[Yy]$ ]]; then
-    qr-wifi
-fi
-
 echo -en "\n${YELLOW}Do you want to enroll your fingerprint for biometry authentication now? (y/N) ${NC}"
 read run_fprint
 if [[ $run_fprint =~ ^[Yy]$ ]]; then
