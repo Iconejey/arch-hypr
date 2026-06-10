@@ -108,6 +108,8 @@ echo -e "\n${BANNER}                                     ${NC}"
 echo -e "${BANNER}  Applying manual configurations...  ${NC}"
 echo -e "${BANNER}                                     ${NC}\n"
 
+echo -e "${YELLOW}Configuring PAM auth for hyprlock fingerprint...${NC}"
+sudo bash -c 'echo "auth sufficient pam_fprintd.so" > /etc/pam.d/hyprlock && echo "auth include login" >> /etc/pam.d/hyprlock'
 
 echo -e "${YELLOW}Changing default shell to ZSH...${NC}"
 sudo chsh -s $(which zsh) "$USER"

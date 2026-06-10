@@ -6,6 +6,8 @@ oh-my-zsh,sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/
 zsh-autosuggestions,yay -S zsh-autosuggestions
 zsh-syntax-highlighting,yay -S zsh-syntax-highlighting
 hyprland,yay -S hyprland
+hyprlock,yay -S hyprlock
+hypridle,yay -S hypridle
 hyprpicker,yay -S hyprpicker
 hyprshot,yay -S hyprshot
 hyprshutdown,yay -S hyprshutdown
