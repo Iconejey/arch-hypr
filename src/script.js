@@ -346,40 +346,45 @@ document.onkeydown = e => {
 		if (document.activeElement.tagName === 'INPUT') {
 			document.activeElement.blur();
 		}
-	} else if (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
-		if (e.key === 'ArrowUp') {
+	} else {
+		const isInputActive = document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA';
+		const inputHasText = isInputActive && document.activeElement.value !== '';
+
+		if (e.key === 'ArrowUp' && !inputHasText) {
 			e.preventDefault();
 			const slider = document.querySelector('.volume-slider');
 			if (slider) {
 				slider.value = Math.min(100, parseInt(slider.value) + 5);
 				slider.dispatchEvent(new Event('input'));
 			}
-		} else if (e.key === 'ArrowDown') {
+		} else if (e.key === 'ArrowDown' && !inputHasText) {
 			e.preventDefault();
 			const slider = document.querySelector('.volume-slider');
 			if (slider) {
 				slider.value = Math.max(0, parseInt(slider.value) - 5);
 				slider.dispatchEvent(new Event('input'));
 			}
-		} else if (e.key === 'ArrowRight') {
+		} else if (e.key === 'ArrowRight' && !inputHasText) {
 			e.preventDefault();
 			const slider = document.querySelector('#brightness-slider');
 			if (slider) {
 				slider.value = Math.min(100, parseInt(slider.value) + 5);
 				slider.dispatchEvent(new Event('input'));
 			}
-		} else if (e.key === 'ArrowLeft') {
+		} else if (e.key === 'ArrowLeft' && !inputHasText) {
 			e.preventDefault();
 			const slider = document.querySelector('#brightness-slider');
 			if (slider) {
 				slider.value = Math.max(0, parseInt(slider.value) - 5);
 				slider.dispatchEvent(new Event('input'));
 			}
-		} else if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
-			// If user types a character and the input isn't focused, focus it
-			const searchInput = document.querySelector('#app-search-input');
-			if (searchInput && document.activeElement !== searchInput) {
-				searchInput.focus();
+		} else if (!isInputActive) {
+			if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+				// If user types a character and the input isn't focused, focus it
+				const searchInput = document.querySelector('#app-search-input');
+				if (searchInput && document.activeElement !== searchInput) {
+					searchInput.focus();
+				}
 			}
 		}
 	}
