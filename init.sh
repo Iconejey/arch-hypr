@@ -114,6 +114,17 @@ sudo bash -c 'echo "auth sufficient pam_fprintd.so" > /etc/pam.d/hyprlock && ech
 echo -e "${YELLOW}Changing default shell to ZSH...${NC}"
 sudo chsh -s $(which zsh) "$USER"
 
+echo -e "${YELLOW}Configuring systemd-logind to ignore lid switch...${NC}"
+sudo mkdir -p /etc/systemd/logind.conf.d
+sudo bash -c 'cat << EOF > /etc/systemd/logind.conf.d/ignore-lid.conf
+[Login]
+HandleLidSwitch=ignore
+HandleLidSwitchExternalPower=ignore
+HandleLidSwitchDocked=ignore
+EOF'
+sudo systemctl restart systemd-logind
+
+
 echo -e "\n${BANNER}                                   ${NC}"
 echo -e "${BANNER}  Running Configuration Linker...  ${NC}"
 echo -e "${BANNER}                                   ${NC}\n"
