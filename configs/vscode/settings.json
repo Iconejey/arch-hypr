@@ -511,5 +511,6 @@
 	"workbench.statusBar.visible": false,
 	"workbench.browser.openLocalhostLinks": false,
 	"breadcrumbs.enabled": false,
-	"workbench.activityBar.location": "hidden"
+	"workbench.activityBar.location": "hidden",
+	"terminal.integrated.initialHint": false
 }
