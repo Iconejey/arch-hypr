@@ -124,6 +124,12 @@ HandleLidSwitchDocked=ignore
 EOF'
 sudo systemctl restart systemd-logind
 
+echo -e "${YELLOW}Configuring iwd (Wireless Daemon) and disabling conflicting NetworkManager...${NC}"
+sudo mkdir -p /etc/iwd
+sudo cp configs/iwd/main.conf /etc/iwd/main.conf
+sudo systemctl disable --now NetworkManager wpa_supplicant 2>/dev/null || true
+sudo systemctl enable --now iwd
+
 
 echo -e "\n${BANNER}                                   ${NC}"
 echo -e "${BANNER}  Running Configuration Linker...  ${NC}"
