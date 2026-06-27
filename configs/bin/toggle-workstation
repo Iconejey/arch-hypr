@@ -4,26 +4,26 @@
 # NORMAL MODE (default):
 #   - Lid close  → lock (hyprlock) + suspend  [handled by lid-close script]
 #   - SUPER+L    → lock session
-#   - No red border
+#   - No yellow border
 #
 # WORKSTATION MODE:
 #   - Lid close  → turn off internal display only (PC stays on, no sleep)
 #   - Opening lid → turn internal display back on
 #   - SUPER+L    → lock session  [unchanged]
-#   - Red border visible at screen edges as visual indicator
+#   - Yellow border visible at screen edges as visual indicator
 
 STATE_FILE="/tmp/hypr-workstation-mode"
 
 # Colors
 NORMAL_BORDER_ACTIVE="rgb(82aaff) rgb(3b8eea) 45deg"
 NORMAL_BORDER_INACTIVE="rgba(595959aa)"
-WORKSTATION_BORDER_ACTIVE="rgb(ff5555) rgb(cc3333) 45deg"
-WORKSTATION_BORDER_INACTIVE="rgba(cc333388)"
+WORKSTATION_BORDER_ACTIVE="rgb(ffdd00) rgb(ccaa00) 45deg"
+WORKSTATION_BORDER_INACTIVE="rgba(ccaa0088)"
 
 enable_workstation_mode() {
     touch "$STATE_FILE"
 
-    # Change border colors to red to indicate workstation mode
+    # Change border colors to yellow to indicate workstation mode
     hyprctl keyword general:col.active_border "$WORKSTATION_BORDER_ACTIVE"
     hyprctl keyword general:col.inactive_border "$WORKSTATION_BORDER_INACTIVE"
 
