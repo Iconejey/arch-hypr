@@ -141,6 +141,9 @@ sudo cp configs/iwd/main.conf /etc/iwd/main.conf
 sudo systemctl disable --now NetworkManager wpa_supplicant 2>/dev/null || true
 sudo systemctl enable --now iwd
 
+echo -e "${YELLOW}Configuring TTY (virtual console) colors from kitty config...${NC}"
+node configs/bin/apply-tty-colors
+
 
 echo -e "\n${BANNER}                                   ${NC}"
 echo -e "${BANNER}  Running Configuration Linker...  ${NC}"

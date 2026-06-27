@@ -441,7 +441,7 @@
 	"workbench.editor.empty.hint": "hidden",
 	"explorer.confirmPasteNative": false,
 	"editor.accessibilitySupport": "off",
-	"diffEditor.ignoreTrimWhitespace": false,
+	"diffEditor.ignoreTrimWhitespace": true,
 	"diffEditor.hideUnchangedRegions.enabled": false,
 	"editor.minimap.enabled": false,
 	"github.copilot.nextEditSuggestions.enabled": false,

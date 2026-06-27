@@ -1,0 +1,152 @@
+#!/usr/bin/env node
+
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+const { execSync } = require('child_process');
+
+// Paths
+const kittyConfigPath = path.join(os.homedir(), '.config', 'kitty', 'kitty.conf');
+const fallbackConfigPath = path.join(__dirname, '..', 'kitty', 'kitty.conf');
+
+function parseHex(hex) {
+    hex = hex.replace('#', '').trim();
+    if (hex.length === 3) {
+        hex = hex.split('').map(c => c + c).join('');
+    }
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    return { r, g, b };
+}
+
+let configContent = '';
+if (fs.existsSync(kittyConfigPath)) {
+    configContent = fs.readFileSync(kittyConfigPath, 'utf8');
+} else if (fs.existsSync(fallbackConfigPath)) {
+    configContent = fs.readFileSync(fallbackConfigPath, 'utf8');
+} else {
+    console.error('❌ Could not find kitty.conf');
+    process.exit(1);
+}
+
+// Default values (fallback)
+const colors = {
+    background: '#000000',
+    foreground: '#ffffff',
+    color0: '#000000',
+    color1: '#aa0000',
+    color2: '#00aa00',
+    color3: '#aa5500',
+    color4: '#0000aa',
+    color5: '#aa00aa',
+    color6: '#00aaaa',
+    color7: '#aaaaaa',
+    color8: '#555555',
+    color9: '#ff5555',
+    color10: '#55ff55',
+    color11: '#ffff55',
+    color12: '#5555ff',
+    color13: '#ff55ff',
+    color14: '#55ffff',
+    color15: '#ffffff'
+};
+
+// Parse kitty.conf
+const lines = configContent.split('\n');
+for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    
+    // Match keys: background, foreground, color0 - color15
+    const match = trimmed.match(/^([a-zA-Z0-9_]+)\s+(#[0-9a-fA-F]{3,8}|\S+)/);
+    if (match) {
+        const key = match[1];
+        const val = match[2];
+        if (colors.hasOwnProperty(key) && val.startsWith('#')) {
+            colors[key] = val;
+        }
+    }
+}
+
+// Map TTY colors (0 to 15)
+// TTY index 0: background (matches terminal background)
+// TTY index 1-6: color1 to color6
+// TTY index 7: foreground (matches terminal foreground)
+// TTY index 8: color8 (bright black / dark gray)
+// TTY index 9-14: color9 to color14
+// TTY index 15: color15 (bright white)
+const ttyColors = [
+    colors.background, // 0
+    colors.color1,     // 1
+    colors.color2,     // 2
+    colors.color3,     // 3
+    colors.color4,     // 4
+    colors.color5,     // 5
+    colors.color6,     // 6
+    colors.foreground, // 7
+    colors.color8,     // 8
+    colors.color9,     // 9
+    colors.color10,    // 10
+    colors.color11,    // 11
+    colors.color12,    // 12
+    colors.color13,    // 13
+    colors.color14,    // 14
+    colors.color15     // 15
+];
+
+const parsed = ttyColors.map(parseHex);
+
+const redLine = parsed.map(c => c.r).join(',');
+const greenLine = parsed.map(c => c.g).join(',');
+const blueLine = parsed.map(c => c.b).join(',');
+
+const vtrgbContent = `${redLine}\n${greenLine}\n${blueLine}\n`;
+
+// Write temporary file
+const tempFilePath = path.join(os.tmpdir(), `vtrgb-${Date.now()}`);
+fs.writeFileSync(tempFilePath, vtrgbContent);
+
+try {
+    console.log('* Copying vtrgb to /etc/vtrgb (requires sudo)...');
+    execSync(`sudo cp "${tempFilePath}" /etc/vtrgb`);
+    fs.unlinkSync(tempFilePath);
+    
+    console.log('* Applying colors to current TTY (requires sudo)...');
+    try {
+        execSync('sudo setvtrgb /etc/vtrgb');
+    } catch (e) {
+        console.warn('⚠️ Could not apply setvtrgb immediately (this is normal if not running in a TTY).');
+    }
+    
+    // Create systemd service to make it permanent
+    const serviceContent = `[Unit]
+Description=Set virtual terminal RGB colors
+DefaultDependencies=no
+After=systemd-vconsole-setup.service
+Before=sysinit.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/setvtrgb /etc/vtrgb
+
+[Install]
+WantedBy=sysinit.target
+`;
+    const tempServicePath = path.join(os.tmpdir(), `setvtrgb.service-${Date.now()}`);
+    fs.writeFileSync(tempServicePath, serviceContent);
+    
+    console.log('* Installing systemd service (requires sudo)...');
+    execSync(`sudo cp "${tempServicePath}" /etc/systemd/system/setvtrgb.service`);
+    fs.unlinkSync(tempServicePath);
+    
+    console.log('* Enabling setvtrgb systemd service...');
+    execSync('sudo systemctl daemon-reload');
+    execSync('sudo systemctl enable setvtrgb.service');
+    
+    console.log('✅ TTY colors successfully configured to match kitty config!');
+} catch (error) {
+    console.error('❌ Failed to apply TTY colors:', error.message);
+    process.exit(1);
+}
