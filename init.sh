@@ -109,20 +109,31 @@ echo -e "${BANNER}  Applying manual configurations...  ${NC}"
 echo -e "${BANNER}                                     ${NC}\n"
 
 echo -e "${YELLOW}Configuring PAM auth for hyprlock fingerprint...${NC}"
-sudo bash -c 'echo "auth sufficient pam_fprintd.so" > /etc/pam.d/hyprlock && echo "auth include login" >> /etc/pam.d/hyprlock'
+sudo bash -c 'cat > /etc/pam.d/hyprlock << EOF
+auth sufficient pam_fprintd.so
+auth sufficient pam_unix.so try_first_pass nullok
+auth required pam_deny.so
+EOF'
+
+echo -e "${YELLOW}Installing sudoers rule for fprintd resume (fixes fingerprint unlock after suspend)...${NC}"
+echo "nicolas ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart fprintd" | sudo tee /etc/sudoers.d/fprintd-resume
+sudo chmod 0440 /etc/sudoers.d/fprintd-resume
 
 echo -e "${YELLOW}Changing default shell to ZSH...${NC}"
 sudo chsh -s $(which zsh) "$USER"
 
-echo -e "${YELLOW}Configuring systemd-logind to ignore lid switch...${NC}"
+echo -e "${YELLOW}Configuring systemd-logind to ignore lid switch (Hyprland handles it)...${NC}"
 sudo mkdir -p /etc/systemd/logind.conf.d
-sudo bash -c 'cat << EOF > /etc/systemd/logind.conf.d/ignore-lid.conf
+sudo bash -c 'cat <<EOF > /etc/systemd/logind.conf.d/lid-hyprland.conf
+# Let Hyprland handle the lid switch entirely via its bindl bindings.
+# Without this, logind also fires suspend/lock on lid close, conflicting
+# with Hyprland workstation mode.
 [Login]
 HandleLidSwitch=ignore
 HandleLidSwitchExternalPower=ignore
 HandleLidSwitchDocked=ignore
 EOF'
-sudo systemctl restart systemd-logind
+sudo systemctl kill -s HUP systemd-logind
 
 echo -e "${YELLOW}Configuring iwd (Wireless Daemon) and disabling conflicting NetworkManager...${NC}"
 sudo mkdir -p /etc/iwd
@@ -138,6 +149,9 @@ echo -e "${BANNER}                                   ${NC}\n"
 echo -e "${YELLOW}Installing npm packages (like electron) for the workspace...${NC}"
 npm install
 node link.js
+
+echo -e "${YELLOW}Making bin scripts executable...${NC}"
+chmod +x configs/bin/*
 
 echo -e "\n${YELLOW}Making Chrome smart globally for Hyprland...${NC}"
 mkdir -p ~/.local/share/applications

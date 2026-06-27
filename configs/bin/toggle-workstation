@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+# toggle-workstation: Toggle workstation mode for Hyprland.
+#
+# NORMAL MODE (default):
+#   - Lid close  → lock (hyprlock) + suspend  [handled by lid-close script]
+#   - SUPER+L    → lock session
+#   - No red border
+#
+# WORKSTATION MODE:
+#   - Lid close  → turn off internal display only (PC stays on, no sleep)
+#   - Opening lid → turn internal display back on
+#   - SUPER+L    → lock session  [unchanged]
+#   - Red border visible at screen edges as visual indicator
+
+STATE_FILE="/tmp/hypr-workstation-mode"
+
+# Colors
+NORMAL_BORDER_ACTIVE="rgb(82aaff) rgb(3b8eea) 45deg"
+NORMAL_BORDER_INACTIVE="rgba(595959aa)"
+WORKSTATION_BORDER_ACTIVE="rgb(ff5555) rgb(cc3333) 45deg"
+WORKSTATION_BORDER_INACTIVE="rgba(cc333388)"
+
+enable_workstation_mode() {
+    touch "$STATE_FILE"
+
+    # Change border colors to red to indicate workstation mode
+    hyprctl keyword general:col.active_border "$WORKSTATION_BORDER_ACTIVE"
+    hyprctl keyword general:col.inactive_border "$WORKSTATION_BORDER_INACTIVE"
+
+    # Make borders thicker and visible at screen edges
+    hyprctl keyword general:border_size 2
+    hyprctl keyword general:gaps_out 40
+
+
+}
+
+disable_workstation_mode() {
+    rm -f "$STATE_FILE"
+
+    # Restore normal border colors
+    hyprctl keyword general:col.active_border "$NORMAL_BORDER_ACTIVE"
+    hyprctl keyword general:col.inactive_border "$NORMAL_BORDER_INACTIVE"
+
+    # Restore normal border size and gaps
+    hyprctl keyword general:border_size 2
+    hyprctl keyword general:gaps_out 20
+
+
+}
+
+# Toggle based on current state
+if [ -f "$STATE_FILE" ]; then
+    disable_workstation_mode
+else
+    enable_workstation_mode
+fi

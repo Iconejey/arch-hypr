@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# lid-close: Called when the laptop lid is closed.
+# Behavior depends on whether workstation mode is active.
+
+STATE_FILE="/tmp/hypr-workstation-mode"
+
+if [ -f "$STATE_FILE" ]; then
+    # Workstation mode: kill the backlight only — no dpms, no suspend.
+    # The compositor keeps rendering so remote screen sharing stays alive.
+    brightnessctl -d intel_backlight set 0
+else
+    # Normal mode: just suspend.
+    # hypridle's before_sleep_cmd fires loginctl lock-session right before sleep,
+    # so hyprlock starts at the last moment and has a fresh fprintd connection after resume.
+    systemctl suspend
+fi
