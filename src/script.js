@@ -34,6 +34,7 @@ window.addEventListener('panelVisible', () => {
 	// Instantly update everything when panel slides in!
 	updateBatteryDetails?.();
 	updateWifiStatus?.();
+	wifiScanAndRefresh?.(); // Trigger a fresh WiFi scan whenever the panel opens
 	updateBluetoothStatus?.();
 	updateBrightnessUI?.();
 	updateVolumeUI?.();
@@ -174,6 +175,9 @@ for (const button of wifi_tab_buttons) {
 		// If scanner logic is defined, trigger it based on the scan view index (1)
 		toggleScanner?.(index === '1');
 		toggleShareQR?.(index === '2');
+
+		// When switching to the network list tab, trigger a fresh scan
+		if (index === '0') wifiScanAndRefresh?.();
 	};
 }
 
@@ -588,98 +592,126 @@ updateWifiStatus();
 setInterval(updateWifiStatus, 5000); // refresh every 5 seconds
 
 // Wifi List update
+let _wifiScanTimer = null;
+
+const _wifiGetDevice = (callback) => {
+	exec('iwctl station list', (err, stdout) => {
+		if (err || !stdout) return callback(null);
+		const pure = stdout.replace(/\x1b\[[0-9;]*m/g, '');
+		const match = pure.match(/^\s*([a-zA-Z0-9_]+)\s+(connected|disconnected|connecting)/m);
+		callback(match ? match[1] : null);
+	});
+};
+
+const _wifiRenderList = (device, wifiListContainer) => {
+	exec(`iwctl station ${device} get-networks`, (err2, stdout2) => {
+		if (err2 || !stdout2) {
+			wifiListContainer.innerHTML = '<div style="padding: 16px; text-align: center; opacity: 0.6; font-size: 0.9em;">No networks found</div>';
+			update_wifi_view_height?.();
+			return;
+		}
+		const lines = stdout2.split('\n').map(l => l.replace(/\x1b\[[0-9;]*m/g, ''));
+		const hl = lines.find(l => l.includes('Network name'));
+		if (!hl) {
+			wifiListContainer.innerHTML = '<div style="padding: 16px; text-align: center; opacity: 0.6; font-size: 0.9em;">No networks found</div>';
+			update_wifi_view_height?.();
+			return;
+		}
+
+		const ns = hl.indexOf('Network name');
+		const ss = hl.indexOf('Security');
+		const sigS = hl.indexOf('Signal');
+		const hi = lines.indexOf(hl);
+
+		let html = '';
+
+		for (let i = hi + 2; i < lines.length; i++) {
+			if (!lines[i].trim() || lines[i].includes('---')) continue;
+
+			const name = lines[i].substring(ns, ss).trim();
+			if (!name) continue;
+
+			const connected = lines[i].substring(0, ns).includes('>');
+			// If it's the currently connected network, don't show it in the list
+			if (connected) continue;
+
+			const sig = lines[i].substring(sigS).trim();
+
+			let icon = 'network_wifi_1_bar';
+			const asterisks = (sig.match(/\*/g) || []).length;
+			if (asterisks === 4) icon = 'signal_wifi_4_bar';
+			else if (asterisks === 3) icon = 'network_wifi_3_bar';
+			else if (asterisks === 2) icon = 'network_wifi_2_bar';
+
+			html += `
+				<button title="${name}">
+					<i>${icon}</i>
+					<span>${name}</span>
+				</button>
+			`;
+		}
+
+		if (html) {
+			wifiListContainer.innerHTML = html;
+
+			// Handle connect clicks
+			wifiListContainer.querySelectorAll('button').forEach(btn => {
+				btn.onclick = () => {
+					const ssid = btn.title;
+					btn.disabled = true;
+					exec(`iwctl station ${device} connect "${ssid}"`, () => {
+						updateWifiList();
+						updateWifiStatus();
+					});
+				};
+			});
+		} else {
+			wifiListContainer.innerHTML = '<div style="padding: 16px; text-align: center; opacity: 0.6; font-size: 0.9em;">No networks found</div>';
+		}
+		update_wifi_view_height?.();
+	});
+};
+
 const updateWifiList = () => {
 	if (!isPanelVisible) return;
 	const wifiListContainer = document.querySelector('#wifi-list .group');
 	if (!wifiListContainer) return;
 
-	exec('iwctl station list', (err, stdout) => {
-		if (err || !stdout) {
-			wifiListContainer.innerHTML = '<div style="padding: 16px; text-align: center; opacity: 0.6; font-size: 0.9em;">No networks found</div>';
-			update_wifi_view_height?.();
-			return;
-		}
-		const pure = stdout.replace(/\x1b\[[0-9;]*m/g, '');
-		const match = pure.match(/^\s*([a-zA-Z0-9_]+)\s+(connected|disconnected|connecting)/m);
-		if (!match) {
+	_wifiGetDevice(device => {
+		if (!device) {
 			wifiListContainer.innerHTML = '<div style="padding: 16px; text-align: center; opacity: 0.6; font-size: 0.9em;">No wifi device found</div>';
 			update_wifi_view_height?.();
 			return;
 		}
+		_wifiRenderList(device, wifiListContainer);
+	});
+};
 
-		const device = match[1];
+// Trigger a fresh iwctl scan then refresh the list after results settle
+const wifiScanAndRefresh = () => {
+	if (_wifiScanTimer) return; // scan already in progress
+	const wifiListContainer = document.querySelector('#wifi-list .group');
 
-		exec(`iwctl station ${device} get-networks`, (err2, stdout2) => {
-			if (err2 || !stdout2) {
-				wifiListContainer.innerHTML = '<div style="padding: 16px; text-align: center; opacity: 0.6; font-size: 0.9em;">No networks found</div>';
+	_wifiGetDevice(device => {
+		if (!device) return;
+
+		// Show a subtle scanning indicator
+		if (wifiListContainer) {
+			const current = wifiListContainer.innerHTML;
+			if (!current || current.includes('No networks')) {
+				wifiListContainer.innerHTML = '<div style="padding: 16px; text-align: center; opacity: 0.6; font-size: 0.9em;">Scanning...</div>';
 				update_wifi_view_height?.();
-				return;
 			}
-			const lines = stdout2.split('\n').map(l => l.replace(/\x1b\[[0-9;]*m/g, ''));
-			const hl = lines.find(l => l.includes('Network name'));
-			if (!hl) {
-				wifiListContainer.innerHTML = '<div style="padding: 16px; text-align: center; opacity: 0.6; font-size: 0.9em;">No networks found</div>';
-				update_wifi_view_height?.();
-				return;
-			}
+		}
 
-			const ns = hl.indexOf('Network name');
-			const ss = hl.indexOf('Security');
-			const sigS = hl.indexOf('Signal');
-			const hi = lines.indexOf(hl);
+		exec(`iwctl station ${device} scan`);
 
-			let html = '';
-
-			for (let i = hi + 2; i < lines.length; i++) {
-				if (!lines[i].trim() || lines[i].includes('---')) continue;
-
-				const name = lines[i].substring(ns, ss).trim();
-				if (!name) continue;
-
-				const connected = lines[i].substring(0, ns).includes('>');
-				// If it's the currently connected network, don't show it in the list
-				if (connected) continue;
-
-				const sig = lines[i].substring(sigS).trim();
-
-				let icon = 'network_wifi_1_bar';
-				const asterisks = (sig.match(/\*/g) || []).length;
-				if (asterisks === 4) icon = 'signal_wifi_4_bar';
-				else if (asterisks === 3) icon = 'network_wifi_3_bar';
-				else if (asterisks === 2) icon = 'network_wifi_2_bar';
-
-				html += `
-					<button title="${name}">
-						<i>${icon}</i>
-						<span>${name}</span>
-					</button>
-				`;
-			}
-
-			if (html) {
-				wifiListContainer.innerHTML = html;
-
-				// Handle connect clicks
-				const buttons = wifiListContainer.querySelectorAll('button');
-				buttons.forEach(btn => {
-					btn.onclick = () => {
-						const ssid = btn.title;
-						// Just try to connect - standard iwctl implementation for known networks
-						exec(`iwctl station ${device} connect "${ssid}"`, () => {
-							updateWifiList();
-							updateWifiStatus();
-						});
-					};
-				});
-			} else {
-				wifiListContainer.innerHTML = `
-					<div style="padding: 16px; text-align: center; opacity: 0.6; font-size: 0.9em;">
-						No networks found
-					</div>
-				`;
-			}
-			update_wifi_view_height?.();
-		});
+		// iwctl scan is async — results settle after ~3 seconds
+		_wifiScanTimer = setTimeout(() => {
+			_wifiScanTimer = null;
+			if (wifiListContainer) _wifiRenderList(device, wifiListContainer);
+			updateWifiStatus();
+		}, 3000);
 	});
 };
 
@@ -755,26 +787,26 @@ const scanFrame = () => {
 						const device = match[1];
 						const cmd = pass ? `iwctl --passphrase "${pass}" station ${device} connect "${ssid}"` : `iwctl station ${device} connect "${ssid}"`;
 
-						exec(`notify-send "WiFi" "Connecting to ${ssid}..."`);
-						exec(cmd, (errCmd, outCmd, stderrCmd) => {
-							if (errCmd) {
-								exec(`notify-send "WiFi Error" "${(stderrCmd || errCmd.message).replace(/"/g, "'")}"`);
-							} else {
-								exec(`notify-send "WiFi" "Connection command sent for ${ssid}"`);
-							}
+						exec(`notify-send "WiFi" "Scanning for ${ssid}..."`);
 
-							// Spam updates to catch the exact moment it establishes
-							updateWifiStatus();
-							updateWifiList();
-							setTimeout(() => {
+						// Scan first so the network is discoverable, then connect
+						exec(`iwctl station ${device} scan`);
+						setTimeout(() => {
+							exec(`notify-send "WiFi" "Connecting to ${ssid}..."`);
+							exec(cmd, (errCmd, outCmd, stderrCmd) => {
+								if (errCmd) {
+									exec(`notify-send "WiFi Error" "${(stderrCmd || errCmd.message).replace(/"/g, "'")}"`);
+								} else {
+									exec(`notify-send "WiFi" "Connection command sent for ${ssid}"`);
+								}
+
+								// Poll updates to catch the moment it establishes
 								updateWifiStatus();
 								updateWifiList();
-							}, 3000);
-							setTimeout(() => {
-								updateWifiStatus();
-								updateWifiList();
-							}, 6000);
-						});
+								setTimeout(() => { updateWifiStatus(); updateWifiList(); }, 3000);
+								setTimeout(() => { updateWifiStatus(); updateWifiList(); }, 6000);
+							});
+						}, 3000); // wait for scan to settle
 					} else {
 						exec(`notify-send "WiFi Scanner Error" "Could not find a valid wireless station device."`);
 					}
