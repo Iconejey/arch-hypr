@@ -57,6 +57,12 @@ if (fs.existsSync(source_dir)) {
 			const zshrc_source = path.join(source_path, '.zshrc');
 			const zshrc_dest = path.join(os.homedir(), '.zshrc');
 			applyConfig(zshrc_source, zshrc_dest, '.zshrc');
+
+			const zprofile_source = path.join(source_path, '.zprofile');
+			const zprofile_dest = path.join(os.homedir(), '.zprofile');
+			if (fs.existsSync(zprofile_source)) {
+				applyConfig(zprofile_source, zprofile_dest, '.zprofile');
+			}
 			continue;
 		}
 

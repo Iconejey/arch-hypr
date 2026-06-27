@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+MONITOR=$(hyprctl monitors -j | jq -r '.[] | select(.focused == true) | .name')
+if [ -z "$MONITOR" ] || [ "$MONITOR" = "null" ]; then
+    # Fallback to the first monitor name
+    MONITOR=$(hyprctl monitors -j | jq -r '.[0].name')
+fi
+if [ -z "$MONITOR" ] || [ "$MONITOR" = "null" ]; then
+    MONITOR="eDP-1"
+fi
+echo "[SELECTION]/screen:$MONITOR"

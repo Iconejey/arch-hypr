@@ -44,3 +44,6 @@ libnotify,yay -S libnotify
 polkit-gnome,yay -S polkit-gnome
 wireplumber,yay -S wireplumber
 jq,yay -S jq
+nvidia-open,yay -S nvidia-open
+libva-nvidia-driver,yay -S libva-nvidia-driver
+
