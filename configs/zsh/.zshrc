@@ -187,3 +187,6 @@ export PATH=$HOME/.local/bin:$PATH
 
 # Added by Antigravity CLI installer
 export PATH="/home/nicolas/.local/bin:$PATH"
+
+# Prevents Zsh from parsing wildcards or question marks before passing them to Nono
+alias nono="noglob node /home/nicolas/dev/Nono-CLI/index.js"
