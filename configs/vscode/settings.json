@@ -508,9 +508,12 @@
 	"terminal.integrated.lineHeight": 1.2,
 	"chat.viewSessions.orientation": "stacked",
 	"chat.tools.terminal.outputLocation": "terminal",
-	"workbench.statusBar.visible": false,
 	"workbench.browser.openLocalhostLinks": false,
 	"breadcrumbs.enabled": false,
 	"workbench.activityBar.location": "hidden",
-	"terminal.integrated.initialHint": false
+	"terminal.integrated.initialHint": false,
+	"editor.unicodeHighlight.allowedCharacters": {
+		"️": true
+	},
+	"workbench.statusBar.visible": false
 }
