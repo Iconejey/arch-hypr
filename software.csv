@@ -12,6 +12,7 @@ hyprpicker,yay -S hyprpicker
 hyprshot,yay -S hyprshot
 hyprshutdown,yay -S hyprshutdown
 ttf-ms-fonts,yay -S ttf-ms-fonts
+ttf-vista-fonts,yay -S ttf-vista-fonts
 ttf-material-symbols-variable,yay -S ttf-material-symbols-variable
 brightnessctl,yay -S brightnessctl
 iwd,yay -S iwd
