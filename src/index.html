@@ -73,6 +73,36 @@
 					</div>
 				</div>
 
+				<!-- Battery stats -->
+				<div class="line battery-management dedicated hidden">
+					<div class="group panel battery-management">
+						<button id="system-stats-btn" title="System usage stats (Click to refresh)">
+							<div class="stats-container">
+								<div class="stat-column">
+									<span class="stat-label">Temp</span>
+									<span id="stat-temp" class="val status-green">--°C</span>
+								</div>
+								<div class="stat-column">
+									<span class="stat-label">CPU</span>
+									<span id="stat-cpu" class="val status-green">--%</span>
+								</div>
+								<div class="stat-column">
+									<span class="stat-label">RAM</span>
+									<span id="stat-ram" class="val status-green">--%</span>
+								</div>
+								<div class="stat-column">
+									<span class="stat-label">iGPU</span>
+									<span id="stat-igpu" class="val status-green">--%</span>
+								</div>
+								<div class="stat-column">
+									<span class="stat-label">dGPU</span>
+									<span id="stat-dgpu" class="val status-green">--%</span>
+								</div>
+							</div>
+						</button>
+					</div>
+				</div>
+
 				<!-- Wifi and bluetooth -->
 				<div class="line wifi-management bluetooth-management">
 					<!-- Wifi -->

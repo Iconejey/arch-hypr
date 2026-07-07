@@ -454,6 +454,51 @@ main {
 	pointer-events: none;
 }
 
+.stats-container {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	width: 100%;
+}
+
+.stat-column {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	flex: 1;
+	text-align: center;
+	gap: 4px;
+}
+
+.stat-label {
+	font-size: 0.75rem;
+	opacity: 0.6; /* matches the date opacity */
+	white-space: nowrap;
+}
+
+.stats-container .val {
+	font-size: 0.9rem;
+	font-weight: normal;
+	white-space: nowrap;
+}
+
+.stats-container .val.status-green {
+	color: #c3e88d; /* Cool Green */
+}
+
+.stats-container .val.status-yellow {
+	color: #ffcb6b; /* Warm Yellow */
+}
+
+.stats-container .val.status-orange {
+	color: #f78c6c; /* Alert Orange */
+}
+
+.stats-container .val.status-red {
+	color: #ff5370; /* Danger Red */
+}
+
 @keyframes startupHide {
 	0% {
 		opacity: 0;

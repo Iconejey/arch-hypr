@@ -4,5 +4,8 @@
 			"approve": true,
 			"matchCommandLine": true
 		}
+	},
+	"workbench.colorCustomizations": {
+		"textCodeBlock.background": "#1e1e1e" // Change this to your active theme's code block background color
 	}
 }

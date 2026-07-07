@@ -1,5 +1,6 @@
 const { exec } = require('child_process');
 const { ipcRenderer } = require('electron');
+const os = require('os');
 
 // Visibility Tracking to save battery
 let isPanelVisible = true;
@@ -38,6 +39,7 @@ window.addEventListener('panelVisible', () => {
 	updateBluetoothStatus?.();
 	updateBrightnessUI?.();
 	updateVolumeUI?.();
+	updateSystemStats?.();
 });
 
 window.addEventListener('panelHidden', () => {
@@ -502,6 +504,240 @@ if (batModeContainer) {
 	});
 }
 
+// System stats monitoring (CPU, RAM, GPU, Temp)
+let lastCpuMeasure = null;
+
+const getCpuAverage = () => {
+	let totalIdle = 0,
+		totalTick = 0;
+	try {
+		const cpus = os.cpus();
+		if (!cpus || cpus.length === 0) return { idle: 0, total: 0 };
+		for (let i = 0, len = cpus.length; i < len; i++) {
+			const cpu = cpus[i];
+			for (const type in cpu.times) {
+				totalTick += cpu.times[type];
+			}
+			totalIdle += cpu.times.idle;
+		}
+		return { idle: totalIdle / cpus.length, total: totalTick / cpus.length };
+	} catch (e) {
+		return { idle: 0, total: 0 };
+	}
+};
+
+try {
+	lastCpuMeasure = getCpuAverage();
+} catch (e) {}
+
+const getCpuUsage = () => {
+	const endMeasure = getCpuAverage();
+	if (!lastCpuMeasure) {
+		lastCpuMeasure = endMeasure;
+		return 0;
+	}
+	const startMeasure = lastCpuMeasure;
+	lastCpuMeasure = endMeasure;
+
+	const idleDifference = endMeasure.idle - startMeasure.idle;
+	const totalDifference = endMeasure.total - startMeasure.total;
+
+	if (totalDifference <= 0) return 0;
+	return Math.max(0, Math.min(100, 100 - Math.round((100 * idleDifference) / totalDifference)));
+};
+
+const getRamUsage = () => {
+	try {
+		const total = os.totalmem();
+		const free = os.freemem();
+		if (total <= 0) return 0;
+		return Math.round(((total - free) / total) * 100);
+	} catch (e) {
+		return 0;
+	}
+};
+
+let cachedTempPath = null;
+const getCpuTemp = () => {
+	if (cachedTempPath) {
+		try {
+			const tempStr = fs.readFileSync(cachedTempPath, 'utf8');
+			return Math.round(parseInt(tempStr.trim(), 10) / 1000);
+		} catch (e) {
+			cachedTempPath = null;
+		}
+	}
+
+	try {
+		const files = fs.readdirSync('/sys/class/thermal');
+		for (const file of files) {
+			if (file.startsWith('thermal_zone')) {
+				const typePath = path.join('/sys/class/thermal', file, 'type');
+				if (fs.existsSync(typePath)) {
+					const type = fs.readFileSync(typePath, 'utf8').trim();
+					if (type === 'x86_pkg_temp') {
+						cachedTempPath = path.join('/sys/class/thermal', file, 'temp');
+						const tempStr = fs.readFileSync(cachedTempPath, 'utf8');
+						return Math.round(parseInt(tempStr.trim(), 10) / 1000);
+					}
+				}
+			}
+		}
+		for (const file of files) {
+			if (file.startsWith('thermal_zone')) {
+				const tempP = path.join('/sys/class/thermal', file, 'temp');
+				if (fs.existsSync(tempP)) {
+					cachedTempPath = tempP;
+					const tempStr = fs.readFileSync(cachedTempPath, 'utf8');
+					return Math.round(parseInt(tempStr.trim(), 10) / 1000);
+				}
+			}
+		}
+	} catch (e) {
+		console.error('Temp error:', e);
+	}
+	return null;
+};
+
+const getGpuUsage = callback => {
+	exec('nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits', (err, stdout) => {
+		if (!err && stdout) {
+			const val = parseInt(stdout.trim(), 10);
+			if (!isNaN(val)) {
+				return callback(val);
+			}
+		}
+
+		fs.readdir('/sys/class/drm', (errDir, files) => {
+			if (!errDir && files) {
+				const card = files.find(f => f.startsWith('card') && !f.includes('-'));
+				if (card) {
+					const p = `/sys/class/drm/${card}/device/gpu_busy_percent`;
+					fs.readFile(p, 'utf8', (errFile, content) => {
+						if (!errFile && content) {
+							const val = parseInt(content.trim(), 10);
+							if (!isNaN(val)) {
+								return callback(val);
+							}
+						}
+						callback(null);
+					});
+					return;
+				}
+			}
+			callback(null);
+		});
+	});
+};
+
+const getStatusClass = (value, type) => {
+	if (value === null || isNaN(value)) return 'status-green';
+	if (type === 'temp') {
+		if (value < 55) return 'status-green';
+		if (value < 70) return 'status-yellow';
+		if (value < 85) return 'status-orange';
+		return 'status-red';
+	}
+	if (type === 'cpu' || type === 'gpu') {
+		if (value < 40) return 'status-green';
+		if (value < 70) return 'status-yellow';
+		if (value < 90) return 'status-orange';
+		return 'status-red';
+	}
+	if (type === 'ram') {
+		if (value < 50) return 'status-green';
+		if (value < 75) return 'status-yellow';
+		if (value < 90) return 'status-orange';
+		return 'status-red';
+	}
+	return 'status-green';
+};
+
+const getIntelGpuUsage = () => {
+	try {
+		const drmDir = '/sys/class/drm';
+		if (!fs.existsSync(drmDir)) return null;
+		const files = fs.readdirSync(drmDir);
+		for (const file of files) {
+			if (file.startsWith('card') && !file.includes('-')) {
+				const actPath = path.join(drmDir, file, 'device', 'drm', file, 'gt_act_freq_mhz');
+				const minPath = path.join(drmDir, file, 'device', 'drm', file, 'gt_min_freq_mhz');
+				const maxPath = path.join(drmDir, file, 'device', 'drm', file, 'gt_max_freq_mhz');
+				if (fs.existsSync(actPath) && fs.existsSync(minPath) && fs.existsSync(maxPath)) {
+					const act = parseInt(fs.readFileSync(actPath, 'utf8').trim(), 10);
+					const min = parseInt(fs.readFileSync(minPath, 'utf8').trim(), 10);
+					const max = parseInt(fs.readFileSync(maxPath, 'utf8').trim(), 10);
+					if (!isNaN(act) && !isNaN(min) && !isNaN(max) && max > min) {
+						if (act <= min) return 0;
+						return Math.max(0, Math.min(100, Math.round(((act - min) / (max - min)) * 100)));
+					}
+				}
+			}
+		}
+	} catch (e) {
+		console.error('Intel GPU error:', e);
+	}
+	return null;
+};
+
+const updateSystemStats = () => {
+	if (!isPanelVisible) return;
+
+	const cpu = getCpuUsage();
+	const ram = getRamUsage();
+	const temp = getCpuTemp();
+	const igpu = getIntelGpuUsage();
+
+	getGpuUsage((dgpu) => {
+		const cpuEl = document.getElementById('stat-cpu');
+		const ramEl = document.getElementById('stat-ram');
+		const tempEl = document.getElementById('stat-temp');
+		const igpuEl = document.getElementById('stat-igpu');
+		const dgpuEl = document.getElementById('stat-dgpu');
+
+		if (cpuEl) {
+			cpuEl.textContent = `${cpu}%`;
+			cpuEl.className = `val ${getStatusClass(cpu, 'cpu')}`;
+		}
+		if (ramEl) {
+			ramEl.textContent = `${ram}%`;
+			ramEl.className = `val ${getStatusClass(ram, 'ram')}`;
+		}
+		if (tempEl) {
+			tempEl.textContent = temp !== null ? `${temp}°C` : '--';
+			tempEl.className = `val ${getStatusClass(temp, 'temp')}`;
+		}
+		if (igpuEl) {
+			igpuEl.textContent = igpu !== null ? `${igpu}%` : '--';
+			igpuEl.className = `val ${getStatusClass(igpu, 'gpu')}`;
+		}
+		if (dgpuEl) {
+			dgpuEl.textContent = dgpu !== null ? `${dgpu}%` : '--';
+			dgpuEl.className = `val ${getStatusClass(dgpu, 'gpu')}`;
+		}
+	});
+};
+
+// Initial update and set interval
+updateSystemStats();
+setInterval(updateSystemStats, 2000);
+
+const statsBtn = document.getElementById('system-stats-btn');
+if (statsBtn) {
+	statsBtn.addEventListener('click', () => {
+		lastCpuMeasure = getCpuAverage();
+		const valElements = ['stat-temp', 'stat-cpu', 'stat-ram', 'stat-igpu', 'stat-dgpu'];
+		valElements.forEach(id => {
+			const el = document.getElementById(id);
+			if (el) {
+				el.textContent = '...';
+				el.className = 'val status-green';
+			}
+		});
+		setTimeout(updateSystemStats, 500);
+	});
+}
+
 // Clock and Date update
 const updateClock = () => {
 	const powerBtn = document.querySelector('button[data-target="power-management"]');
@@ -594,7 +830,7 @@ setInterval(updateWifiStatus, 5000); // refresh every 5 seconds
 // Wifi List update
 let _wifiScanTimer = null;
 
-const _wifiGetDevice = (callback) => {
+const _wifiGetDevice = callback => {
 	exec('iwctl station list', (err, stdout) => {
 		if (err || !stdout) return callback(null);
 		const pure = stdout.replace(/\x1b\[[0-9;]*m/g, '');
@@ -803,8 +1039,14 @@ const scanFrame = () => {
 								// Poll updates to catch the moment it establishes
 								updateWifiStatus();
 								updateWifiList();
-								setTimeout(() => { updateWifiStatus(); updateWifiList(); }, 3000);
-								setTimeout(() => { updateWifiStatus(); updateWifiList(); }, 6000);
+								setTimeout(() => {
+									updateWifiStatus();
+									updateWifiList();
+								}, 3000);
+								setTimeout(() => {
+									updateWifiStatus();
+									updateWifiList();
+								}, 6000);
 							});
 						}, 3000); // wait for scan to settle
 					} else {
@@ -821,7 +1063,7 @@ const scanFrame = () => {
 // Bluetooth Management
 let _btScanProcess = null;
 
-const _btGetIcon = (name) => {
+const _btGetIcon = name => {
 	const lname = name.toLowerCase();
 	if (lname.includes('airpods') || lname.includes('headphone') || lname.includes('bud') || lname.includes('audio') || lname.includes('bose') || lname.includes('sony')) return 'headphones';
 	if (lname.includes('mouse') || lname.includes('mx master')) return 'mouse';
@@ -850,9 +1092,7 @@ const updateBluetoothStatus = () => {
 
 		exec('bluetoothctl devices Connected', (err2, stdout2) => {
 			const lines = (stdout2 || '').trim().split('\n');
-			const connectedLines = lines
-				.map(l => l.replace(/\x1b\[[0-9;]*m/g, '').trim())
-				.filter(l => l.startsWith('Device'));
+			const connectedLines = lines.map(l => l.replace(/\x1b\[[0-9;]*m/g, '').trim()).filter(l => l.startsWith('Device'));
 
 			const count = connectedLines.length;
 
@@ -877,10 +1117,15 @@ const updateBluetoothList = () => {
 	// Get both all known devices and currently connected ones in parallel
 	exec('bluetoothctl devices Connected', (errConn, stdoutConn) => {
 		const connectedMacs = new Set(
-			(stdoutConn || '').trim().split('\n')
+			(stdoutConn || '')
+				.trim()
+				.split('\n')
 				.map(l => l.replace(/\x1b\[[0-9;]*m/g, '').trim())
 				.filter(l => l.startsWith('Device'))
-				.map(l => { const m = l.match(/Device\s+([A-F0-9:]+)/i); return m ? m[1] : null; })
+				.map(l => {
+					const m = l.match(/Device\s+([A-F0-9:]+)/i);
+					return m ? m[1] : null;
+				})
 				.filter(Boolean)
 		);
 
@@ -891,9 +1136,7 @@ const updateBluetoothList = () => {
 			}
 
 			const lines = stdout.trim().split('\n');
-			const pureLines = lines
-				.map(l => l.replace(/\x1b\[[0-9;]*m/g, '').trim())
-				.filter(l => l.startsWith('Device'));
+			const pureLines = lines.map(l => l.replace(/\x1b\[[0-9;]*m/g, '').trim()).filter(l => l.startsWith('Device'));
 
 			if (pureLines.length === 0) {
 				btListContainer.innerHTML = '<div style="padding: 16px; text-align: center; opacity: 0.6; font-size: 0.9em;">No Bluetooth devices found</div>';
