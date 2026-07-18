@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Clipboard History</title>
+		<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+		<link rel="stylesheet" href="style.css" />
+		<style>
+			html,
+			body {
+				margin: 0;
+				padding: 0;
+				background: transparent !important;
+				overflow: hidden;
+				height: 100%;
+				font-family: sans-serif;
+			}
+			main {
+				background-color: rgba(25, 25, 25, 0.95);
+				border: 2px solid #82aaff;
+				border-radius: 12px;
+				padding: 16px;
+				height: 100%;
+				display: flex;
+				flex-direction: column;
+				box-sizing: border-box;
+				box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+			}
+			#clipboard-search-container {
+				margin-bottom: 12px;
+			}
+			#clipboard-list-container {
+				flex: 1;
+				overflow-y: auto;
+				display: flex;
+				flex-direction: column;
+				gap: 6px;
+				padding: 4px;
+				background-color: rgba(15, 15, 15, 0.4);
+				border-radius: 6px;
+				border: 1px solid rgba(255, 255, 255, 0.05);
+			}
+			.clipboard-item {
+				display: flex;
+				align-items: center;
+				width: 100%;
+				background: transparent;
+				border: none;
+				outline: none;
+				color: #c6c6c6;
+				padding: 8px 12px;
+				border-radius: 6px;
+				text-align: left;
+				cursor: pointer;
+				gap: 12px;
+				box-sizing: border-box;
+				transition:
+					background 0.1s,
+					color 0.1s;
+			}
+			.clipboard-item:hover,
+			.clipboard-item.focused {
+				background-color: #242424;
+			}
+			.clipboard-item.active {
+				background-color: #82aaff;
+				color: #191919;
+			}
+			.clipboard-item.active span {
+				color: #191919;
+			}
+			.clipboard-item.active strong {
+				color: #000000;
+			}
+			.clipboard-item img {
+				max-width: 120px;
+				max-height: 64px;
+				border-radius: 4px;
+				object-fit: contain;
+				background: rgba(0, 0, 0, 0.2);
+				border: 1px solid rgba(255, 255, 255, 0.1);
+			}
+			.clipboard-item span {
+				flex: 1;
+				white-space: nowrap;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				font-size: 0.95rem;
+			}
+			.clipboard-item .icon {
+				font-family: 'Material Symbols Outlined';
+				font-size: 1.3rem;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				opacity: 0.8;
+			}
+			/* Scrollbar Styling */
+			#clipboard-list-container::-webkit-scrollbar {
+				width: 6px;
+			}
+			#clipboard-list-container::-webkit-scrollbar-track {
+				background: transparent;
+			}
+			#clipboard-list-container::-webkit-scrollbar-thumb {
+				background: rgba(255, 255, 255, 0.1);
+				border-radius: 3px;
+			}
+			#clipboard-list-container::-webkit-scrollbar-thumb:hover {
+				background: rgba(255, 255, 255, 0.2);
+			}
+		</style>
+	</head>
+	<body>
+		<main>
+			<!-- Search Bar (matching panel structure) -->
+			<div class="line search-box" id="clipboard-search-container">
+				<div class="group panel" style="display: flex; align-items: center; padding: 0 16px; gap: 12px; background-color: rgba(40, 40, 40, 0.5); border-radius: 6px; height: 42px">
+					<i class="material-symbols-outlined" style="color: #c6c6c6; opacity: 0.6">search</i>
+					<input
+						type="text"
+						id="clipboard-search-input"
+						placeholder="Search clipboard history..."
+						autocomplete="off"
+						spellcheck="false"
+						style="flex: 1; background: transparent; border: none; outline: none; color: #c6c6c6; font-size: 1rem"
+					/>
+				</div>
+			</div>
+
+			<!-- History Scroll Area -->
+			<div id="clipboard-list-container">
+				<!-- JS populates items -->
+			</div>
+		</main>
+
+		<script>
+			const { execSync, exec, spawn } = require('child_process');
+			const fs = require('fs');
+			const path = require('path');
+			const { ipcRenderer } = require('electron');
+
+			const previewDir = '/tmp/cliphist_previews';
+			if (!fs.existsSync(previewDir)) {
+				fs.mkdirSync(previewDir, { recursive: true });
+			}
+
+			const searchInput = document.getElementById('clipboard-search-input');
+			const listContainer = document.getElementById('clipboard-list-container');
+
+			let allClipboardItems = [];
+			let filteredItems = [];
+			let selectedIndex = 0;
+
+			function getClipboardHistory() {
+				try {
+					const output = execSync('cliphist list', { encoding: 'utf8', maxBuffer: 10 * 1024 * 1024 });
+					const lines = output.trim().split('\n').slice(0, 100); //snappy 100 elements limit
+					const items = [];
+
+					for (const line of lines) {
+						if (!line) continue;
+						const tabIndex = line.indexOf('\t');
+						if (tabIndex === -1) continue;
+
+						const id = line.substring(0, tabIndex);
+						const content = line.substring(tabIndex + 1);
+
+						let isImage = false;
+						let imagePath = null;
+						if (content.startsWith('[[ binary data')) {
+							isImage = true;
+							imagePath = path.join(previewDir, `${id}.bin`);
+							if (!fs.existsSync(imagePath)) {
+								try {
+									execSync(`cliphist decode ${id} > ${imagePath}`);
+								} catch (err) {
+									console.error('Failed to decode image preview:', err);
+								}
+							}
+						}
+
+						items.push({
+							id,
+							content,
+							isImage,
+							imagePath
+						});
+					}
+					return items;
+				} catch (e) {
+					console.error('Error fetching cliphist list:', e);
+					return [];
+				}
+			}
+
+			function renderList() {
+				listContainer.innerHTML = '';
+
+				if (filteredItems.length === 0) {
+					listContainer.innerHTML = '<div style="padding: 24px; text-align: center; color: rgba(198, 198, 198, 0.4); font-size: 0.95rem;">No history items found</div>';
+					return;
+				}
+
+				filteredItems.forEach((item, index) => {
+					const button = document.createElement('button');
+					button.className = 'clipboard-item';
+					if (index === selectedIndex) {
+						button.classList.add('active');
+					}
+
+					if (item.isImage) {
+						if (item.imagePath && fs.existsSync(item.imagePath)) {
+							const img = document.createElement('img');
+							img.src = `file://${item.imagePath}?t=${Date.now()}`;
+							button.appendChild(img);
+						} else {
+							const icon = document.createElement('span');
+							icon.className = 'icon';
+							icon.innerText = 'image';
+							button.appendChild(icon);
+						}
+
+						const text = document.createElement('span');
+						const cleanDesc = item.content.replace(/[\[\]]/g, '').trim();
+						text.innerHTML = `<strong>Image:</strong> ${cleanDesc}`;
+						button.appendChild(text);
+					} else {
+						const icon = document.createElement('span');
+						icon.className = 'icon';
+						icon.innerText = 'content_paste';
+						button.appendChild(icon);
+
+						const text = document.createElement('span');
+						const cleanText = item.content.replace(/\n/g, ' ↵ ').trim();
+						text.innerText = cleanText;
+						button.appendChild(text);
+					}
+
+					button.onclick = () => {
+						selectAndPaste(item.id);
+					};
+
+					listContainer.appendChild(button);
+
+					// Ensure active item is scrolled into view
+					if (index === selectedIndex) {
+						button.scrollIntoView({ block: 'nearest' });
+					}
+				});
+			}
+
+			function selectAndPaste(id) {
+				ipcRenderer.send('paste-item', id);
+			}
+
+			// Search input filter
+			searchInput.oninput = () => {
+				const query = searchInput.value.toLowerCase().trim();
+				if (!query) {
+					filteredItems = [...allClipboardItems];
+				} else {
+					filteredItems = allClipboardItems.filter(item => {
+						if (item.isImage) {
+							return item.content.toLowerCase().includes(query) || 'image'.includes(query);
+						}
+						return item.content.toLowerCase().includes(query);
+					});
+				}
+				selectedIndex = 0;
+				renderList();
+			};
+
+			// Keyboard Navigation
+			window.onkeydown = e => {
+				if (e.key === 'Escape') {
+					window.close();
+				} else if (e.key === 'ArrowDown') {
+					e.preventDefault();
+					if (filteredItems.length > 0) {
+						selectedIndex = (selectedIndex + 1) % filteredItems.length;
+						renderList();
+					}
+				} else if (e.key === 'ArrowUp') {
+					e.preventDefault();
+					if (filteredItems.length > 0) {
+						selectedIndex = (selectedIndex - 1 + filteredItems.length) % filteredItems.length;
+						renderList();
+					}
+				} else if (e.key === 'Enter') {
+					e.preventDefault();
+					if (filteredItems.length > 0 && selectedIndex >= 0 && selectedIndex < filteredItems.length) {
+						selectAndPaste(filteredItems[selectedIndex].id);
+					}
+				} else {
+					// Typing while search is not active automatically focuses and appends
+					if (document.activeElement !== searchInput && e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+						searchInput.focus();
+						searchInput.value += e.key;
+						searchInput.dispatchEvent(new Event('input'));
+						e.preventDefault();
+					}
+				}
+			};
+
+			// Initialize
+			window.onload = () => {
+				allClipboardItems = getClipboardHistory();
+				filteredItems = [...allClipboardItems];
+				renderList();
+				searchInput.focus();
+			};
+		</script>
+	</body>
+</html>

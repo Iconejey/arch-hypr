@@ -1,0 +1,11 @@
+#!/bin/bash
+# Launcher script for the Electron-based Clipboard History Popup
+# Changing directory to preserve process matching for "electron ." in toggle-panel.sh
+cd /home/nicolas/dev/arch-hypr
+
+ACTIVE_CLASS=$(hyprctl activewindow -j | jq -r '.class' 2>/dev/null)
+if [ -z "$ACTIVE_CLASS" ] || [ "$ACTIVE_CLASS" == "null" ]; then
+    ACTIVE_CLASS="unknown"
+fi
+
+electron . --clipboard --target-class="$ACTIVE_CLASS"

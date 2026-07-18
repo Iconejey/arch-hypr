@@ -4,7 +4,7 @@
 
 # Precise ways to check running status
 PANEL_PID=$(hyprctl clients -j | jq -r '.[] | select(.title=="arch-hypr-panel") | .pid' | head -n 1)
-PROCESS_EXISTS=$(pgrep -f "electron \.")
+PROCESS_EXISTS=$(pgrep -f "electron.*(arch-hypr|\.)")
 
 get_reserved_commands() {
     local left_gap=$1
@@ -25,7 +25,7 @@ get_reserved_commands() {
 # If SUPER+A was pressed, or we want to force kill
 if [ "$1" == "kill" ]; then
     if [ -n "$PROCESS_EXISTS" ]; then
-        pkill -f "electron \."
+        pkill -f "electron.*(arch-hypr|\.)"
         # Reset any reserved space on kill
         hyprctl --batch "$(get_reserved_commands 0)" >/dev/null
     else
