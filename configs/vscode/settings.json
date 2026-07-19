@@ -510,10 +510,10 @@
 	"chat.tools.terminal.outputLocation": "terminal",
 	"workbench.browser.openLocalhostLinks": false,
 	"breadcrumbs.enabled": false,
-	"workbench.activityBar.location": "hidden",
 	"terminal.integrated.initialHint": false,
 	"editor.unicodeHighlight.allowedCharacters": {
 		"️": true
 	},
-	"workbench.statusBar.visible": false
+	"workbench.statusBar.visible": false,
+	"workbench.activityBar.location": "hidden"
 }
