@@ -31,7 +31,7 @@ color-link selection "#ffffff,#3e4534"
 color-link indent-char "#474747"
 color-link line-number "#474747,#191919"
 color-link current-line-number "#82AAFF,#191919"
-color-link cursor-line "#242424"
+color-link cursor-line "#191919"
 color-link divider "#131313,#191919"
 
 color-link statusline "#c6c6c6,#242424"

@@ -1,4 +1,5 @@
 {
 	"colorscheme": "vscode-custom",
-	"truecolor": "on"
+	"truecolor": "on",
+	"cursorline": false
 }
