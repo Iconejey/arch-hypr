@@ -504,7 +504,7 @@
 
 	"window.menuBarVisibility": "toggle",
 	"workbench.colorTheme": "Material Theme Darker",
-	"terminal.integrated.fontSize": 17,
+	"terminal.integrated.fontSize": 16,
 	"terminal.integrated.lineHeight": 1.2,
 	"chat.viewSessions.orientation": "stacked",
 	"chat.tools.terminal.outputLocation": "terminal",
