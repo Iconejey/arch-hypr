@@ -31,3 +31,17 @@ function spawnKittyTab(bp)
 	local end_line = math.max(first_y, second_y) + 1
 	shell.RunCommand(string.format("kitty @ launch --type=tab nono -f %s:%d-%d", abs_path, start_line, end_line))
 end
+
+function scrollLeft(bp)
+	local v = bp:GetView()
+	local scroll_amount = 4
+	v.StartCol = math.max(0, v.StartCol - scroll_amount)
+	bp:SetView(v)
+end
+
+function scrollRight(bp)
+	local v = bp:GetView()
+	local scroll_amount = 4
+	v.StartCol = v.StartCol + scroll_amount
+	bp:SetView(v)
+end
