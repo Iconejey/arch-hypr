@@ -45,3 +45,12 @@ function scrollRight(bp)
 	v.StartCol = v.StartCol + scroll_amount
 	bp:SetView(v)
 end
+
+function runNomark(bp)
+	local abs_path = bp.Buf.AbsPath
+	if not abs_path or abs_path == "" then return end
+	if bp.Buf:Modified() then
+		bp.Buf:Save()
+	end
+	shell.RunCommand(string.format("kitten @ launch --type=tab zsh -ic 'nomark %q; exec zsh'", abs_path))
+end

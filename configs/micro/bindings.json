@@ -8,6 +8,7 @@
 	"Alt-v": "VSplit",
 	"Ctrl-q": "None",
 	"Ctrl-w": "Quit",
+	"Alt-m": "lua:initlua.runNomark",
 	"CtrlAltN": "lua:initlua.spawnKittyTab",
 	"Ctrl-Enter": "EndOfLine,InsertNewline",
 	"Ctrl-Shift-Enter": "StartOfLine,InsertNewline,CursorUp",
