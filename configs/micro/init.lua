@@ -29,7 +29,7 @@ function spawnKittyTab(bp)
 	local second_y = bp.Cursor.CurSelection[2].Y
 	local start_line = math.min(first_y, second_y) + 1
 	local end_line = math.max(first_y, second_y) + 1
-	shell.RunCommand(string.format("kitty @ launch --type=tab nono -f %s:%d-%d", abs_path, start_line, end_line))
+	shell.RunCommand(string.format("kitten @ launch --type=tab %s/.local/bin/nono -f %s:%d-%d", os.getenv("HOME"), abs_path, start_line, end_line))
 end
 
 function scrollLeft(bp)
