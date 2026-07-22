@@ -49,5 +49,4 @@ nvidia-open,yay -S nvidia-open
 libva-nvidia-driver,yay -S libva-nvidia-driver
 cliphist,sudo pacman -S cliphist
 wtype,sudo pacman -S wtype
-micro,sudo pacman -S micro
 
